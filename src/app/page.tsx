@@ -103,8 +103,9 @@ export default function Home() {
     setIsRunning(true);
     
     for (let i = 0; i < workflowItems.length; i++) {
+      const currentItem = workflowItems[i];
       await new Promise(resolve => setTimeout(resolve, 1000));
-      alert(`Test ${i + 1} has been executed`);
+      alert(`Test ${i + 1}: ${currentItem.name} has been executed`);
     }
     
     setIsRunning(false);
