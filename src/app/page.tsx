@@ -9,11 +9,11 @@ interface WorkflowItem {
 }
 
 const functions = [
-  { id: 'function1', name: 'Function1' },
-  { id: 'function2', name: 'Function2' },
-  { id: 'function3', name: 'Function3' },
-  { id: 'function4', name: 'Function4' },
-  { id: 'function5', name: 'Function5' },
+  { id: 'logonspf', name: 'LogonSPF', description: 'Mainframe Connectivity' },
+  { id: 'editjcl', name: 'EditJCL', description: 'Job Edit' },
+  { id: 'execjcl', name: 'ExecJCL', description: 'Job Execution' },
+  { id: 'executioncheck', name: 'ExecutionCheck', description: 'Check Job Status' },
+  { id: 'getjoblog', name: 'GetJobLog', description: 'Get Job Log' },
 ];
 
 export default function Home() {
@@ -94,6 +94,18 @@ export default function Home() {
     setWorkflowItems(workflowItems.filter(item => item.id !== id));
   };
 
+  const executeFunction = (functionId: string, functionName: string) => {
+    const messages = {
+      'logonspf': `${functionName}: Successfully connected to mainframe with credentials. User XYZ logged in at folder path.`,
+      'editjcl': `${functionName}: JCL file edited successfully. Found 'abc1(&date)' and replaced with 'xyz1(250806)'. String replacements completed.`,
+      'execjcl': `${functionName}: JCL job 'JCL1(SHIPPRATEST.JCL1)' submitted successfully. Job execution started.`,
+      'executioncheck': `${functionName}: Job status checked. Job 'JOBABCA1' execution status retrieved from spool.`,
+      'getjoblog': `${functionName}: Job log retrieved successfully for 'JOBABCA1'. Log file generated using GetFile from mainframe.`
+    };
+    
+    return messages[functionId as keyof typeof messages] || `${functionName}: Function executed successfully`;
+  };
+
   const runWorkflow = async () => {
     if (workflowItems.length === 0) {
       alert('Please add functions to your workflow before running.');
@@ -104,10 +116,12 @@ export default function Home() {
     
     for (let i = 0; i < workflowItems.length; i++) {
       const currentItem = workflowItems[i];
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      alert(`Test ${i + 1}: ${currentItem.name} has been executed`);
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      const message = executeFunction(currentItem.functionId, currentItem.name);
+      alert(`Step ${i + 1}: ${message}`);
     }
     
+    alert('Workflow execution completed successfully!');
     setIsRunning(false);
   };
 
