@@ -63,6 +63,28 @@ const functions = [
       { name: 'Job Run Date', placeholder: 'Date' }
     ]
   },
+  { 
+    id: 'filecomp1', 
+    name: 'FileComp1', 
+    description: 'File Comparison',
+    inputs: [
+      { name: 'File Name1', placeholder: 'File1' },
+      { name: 'Windows File Location1', placeholder: 'File location' },
+      { name: 'File Name2', placeholder: 'File2' },
+      { name: 'Windows File Location2', placeholder: 'File location' }
+    ]
+  },
+  { 
+    id: 'filecomp2', 
+    name: 'FileComp2', 
+    description: 'File Comparison',
+    inputs: [
+      { name: 'File Name1', placeholder: 'File1' },
+      { name: 'Windows File Location', placeholder: 'File location' },
+      { name: 'Field1 Condition', placeholder: 'Value' },
+      { name: 'Field2 Condition', placeholder: 'Value' }
+    ]
+  },
 ];
 
 export default function Home() {
@@ -196,6 +218,10 @@ export default function Home() {
         return `${functionName}: Job status checked. Job '${inputs['Job Name'] || 'JOBABCA1'}' execution status retrieved from spool on ${inputs['Job Run Date'] || 'Date'}.`;
       case 'getjoblog':
         return `${functionName}: Job log retrieved successfully for '${inputs['Job Name'] || 'JOBABCA1'}' on ${inputs['Job Run Date'] || 'Date'}. Log file generated using GetFile from mainframe.`;
+      case 'filecomp1':
+        return `${functionName}: File comparison completed. Compared '${inputs['File Name1'] || 'File1'}' at '${inputs['Windows File Location1'] || 'File location'}' and '${inputs['File Name2'] || 'File2'}' at '${inputs['Windows File Location2'] || 'File location'}'. Files compared and differences identified.`;
+      case 'filecomp2':
+        return `${functionName}: File comparison with conditions completed. Verified '${inputs['File Name1'] || 'File1'}' for expected values. Field1 condition '${inputs['Field1 Condition'] || 'Value'}' and Field2 condition '${inputs['Field2 Condition'] || 'Value'}' checked. Differences mentioned.`;
       default:
         return `${functionName}: Function executed successfully`;
     }
