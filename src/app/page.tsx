@@ -85,6 +85,68 @@ const functions = [
       { name: 'Field2 Condition', placeholder: 'Value' }
     ]
   },
+  { 
+    id: 'createfile', 
+    name: 'CreateFile', 
+    description: 'File Creation',
+    inputs: [
+      { name: 'File Name', placeholder: 'File1' },
+      { name: 'File Location on windows', placeholder: 'Location' },
+      { name: 'Copybook Name', placeholder: 'Layout Name' },
+      { name: 'Copybook Location on windows', placeholder: 'Location' },
+      { name: 'Key Field-1', placeholder: 'Value' },
+      { name: 'Input Field-1', placeholder: 'Value' },
+      { name: 'Input Field-2', placeholder: 'Value' },
+      { name: 'Input Field-n', placeholder: 'Value' }
+    ]
+  },
+  { 
+    id: 'sendfile', 
+    name: 'SendFile', 
+    description: 'Export Utility',
+    inputs: [
+      { name: 'Windows File name', placeholder: 'File1' },
+      { name: 'Windows File Location', placeholder: 'File location' },
+      { name: 'Mainframe File Name', placeholder: 'File2(SHIPRA.TEST.FILE2)' }
+    ]
+  },
+  { 
+    id: 'getfile', 
+    name: 'GetFile', 
+    description: 'Import Utility',
+    inputs: [
+      { name: 'Windows File name', placeholder: 'File1' },
+      { name: 'Windows File Location', placeholder: 'File location' },
+      { name: 'Mainframe File Name', placeholder: 'File2(SHIPRA.TEST.FILE2)' }
+    ]
+  },
+  { 
+    id: 'fileconv', 
+    name: 'FileConv', 
+    description: 'File Conversion to excel',
+    inputs: [
+      { name: 'Text file name in windows', placeholder: 'File1' },
+      { name: 'Windows text file location', placeholder: 'File location' },
+      { name: 'Copybook name in windows', placeholder: 'File2' },
+      { name: 'Windows Copybook Location', placeholder: 'Copybook location' },
+      { name: 'Excel file name', placeholder: 'File3' },
+      { name: 'Excel file location', placeholder: 'Excel file location' }
+    ]
+  },
+  { 
+    id: 'gotoispfmainscreen', 
+    name: 'GotoISPFmainscreen', 
+    description: 'Return to main screen',
+    inputs: []
+  },
+  { 
+    id: 'filereccount', 
+    name: 'FileRecCount', 
+    description: 'Get record count in a file',
+    inputs: [
+      { name: 'File Name1', placeholder: 'File1(SHIPRA.TEST.FILE1)' }
+    ]
+  },
 ];
 
 export default function Home() {
@@ -222,6 +284,18 @@ export default function Home() {
         return `${functionName}: File comparison completed. Compared '${inputs['File Name1'] || 'File1'}' at '${inputs['Windows File Location1'] || 'File location'}' and '${inputs['File Name2'] || 'File2'}' at '${inputs['Windows File Location2'] || 'File location'}'. Files compared and differences identified.`;
       case 'filecomp2':
         return `${functionName}: File comparison with conditions completed. Verified '${inputs['File Name1'] || 'File1'}' for expected values. Field1 condition '${inputs['Field1 Condition'] || 'Value'}' and Field2 condition '${inputs['Field2 Condition'] || 'Value'}' checked. Differences mentioned.`;
+      case 'createfile':
+        return `${functionName}: File created successfully. Created '${inputs['File Name'] || 'File1'}' at '${inputs['File Location on windows'] || 'Location'}' using copybook '${inputs['Copybook Name'] || 'Layout Name'}'. File edited as per conditions.`;
+      case 'sendfile':
+        return `${functionName}: File transfer completed successfully. Transferred '${inputs['Windows File name'] || 'File1'}' from '${inputs['Windows File Location'] || 'File location'}' to mainframe file '${inputs['Mainframe File Name'] || 'File2(SHIPRA.TEST.FILE2)'}'. Return message for successful data transfer.`;
+      case 'getfile':
+        return `${functionName}: File import completed successfully. Retrieved '${inputs['Mainframe File Name'] || 'File2(SHIPRA.TEST.FILE2)'}' to '${inputs['Windows File name'] || 'File1'}' at '${inputs['Windows File Location'] || 'File location'}'. Return message for successful data transfer.`;
+      case 'fileconv':
+        return `${functionName}: File conversion completed successfully. Converted text file '${inputs['Text file name in windows'] || 'File1'}' to Excel file '${inputs['Excel file name'] || 'File3'}' using copybook '${inputs['Copybook name in windows'] || 'File2'}'. File converted to excel as per copybook layout.`;
+      case 'gotoispfmainscreen':
+        return `${functionName}: Successfully returned to ISPF main screen. Pre-requisite LogonSPF should be true.`;
+      case 'filereccount':
+        return `${functionName}: Record count retrieved successfully. File '${inputs['File Name1'] || 'File1(SHIPRA.TEST.FILE1)'}' contains record count. Can be used to verify empty files.`;
       default:
         return `${functionName}: Function executed successfully`;
     }
