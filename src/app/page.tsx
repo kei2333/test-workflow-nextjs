@@ -6,14 +6,63 @@ interface WorkflowItem {
   id: string;
   name: string;
   functionId: string;
+  inputs: Record<string, string>;
+}
+
+interface FunctionInput {
+  name: string;
+  placeholder: string;
 }
 
 const functions = [
-  { id: 'logonspf', name: 'LogonSPF', description: 'Mainframe Connectivity' },
-  { id: 'editjcl', name: 'EditJCL', description: 'Job Edit' },
-  { id: 'execjcl', name: 'ExecJCL', description: 'Job Execution' },
-  { id: 'executioncheck', name: 'ExecutionCheck', description: 'Check Job Status' },
-  { id: 'getjoblog', name: 'GetJobLog', description: 'Get Job Log' },
+  { 
+    id: 'logonspf', 
+    name: 'LogonSPF', 
+    description: 'Mainframe Connectivity',
+    inputs: [
+      { name: 'User Name', placeholder: 'XYZ' },
+      { name: 'Password', placeholder: '****' },
+      { name: 'Mainframe location', placeholder: 'folder path' }
+    ]
+  },
+  { 
+    id: 'editjcl', 
+    name: 'EditJCL', 
+    description: 'Job Edit',
+    inputs: [
+      { name: 'JCL Name', placeholder: 'JCL1(SHIPPRATEST.JCL1)' },
+      { name: 'String to be found1', placeholder: 'abc1(&date)' },
+      { name: 'String to be replaced1', placeholder: 'xyz1(250806)' },
+      { name: 'String to be found2', placeholder: 'abc2' },
+      { name: 'String to be replaced2', placeholder: 'xyz2' }
+    ]
+  },
+  { 
+    id: 'execjcl', 
+    name: 'ExecJCL', 
+    description: 'Job Execution',
+    inputs: [
+      { name: 'JCL Name', placeholder: 'JCL1(SHIPPRATEST.JCL1)' }
+    ]
+  },
+  { 
+    id: 'executioncheck', 
+    name: 'ExecutionCheck', 
+    description: 'Check Job Status',
+    inputs: [
+      { name: 'Job Name', placeholder: 'JOBABCA1' },
+      { name: 'Job Run Date', placeholder: 'Date' }
+    ]
+  },
+  { 
+    id: 'getjoblog', 
+    name: 'GetJobLog', 
+    description: 'Get Job Log',
+    inputs: [
+      { name: 'Job Name', placeholder: 'JOBABCA1' },
+      { name: 'Job Run Date', placeholder: 'Date' }
+    ]
+  },
 ];
 
 export default function Home() {
@@ -21,6 +70,10 @@ export default function Home() {
   const [isRunning, setIsRunning] = useState(false);
   const [draggedFunction, setDraggedFunction] = useState<string>('');
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [showInputModal, setShowInputModal] = useState(false);
+  const [pendingFunction, setPendingFunction] = useState<any>(null);
+  const [pendingInsertIndex, setPendingInsertIndex] = useState<number | null>(null);
+  const [inputValues, setInputValues] = useState<Record<string, string>>({});
 
   const handleDragStart = (e: React.DragEvent, functionId: string) => {
     setDraggedFunction(functionId);
@@ -37,12 +90,16 @@ export default function Home() {
     const functionData = functions.find(f => f.id === functionId);
     
     if (functionData) {
-      const newWorkflowItem: WorkflowItem = {
-        id: `${functionData.id}-${Date.now()}`,
-        name: functionData.name,
-        functionId: functionData.id,
-      };
-      setWorkflowItems([...workflowItems, newWorkflowItem]);
+      setPendingFunction(functionData);
+      setPendingInsertIndex(workflowItems.length);
+      
+      // Initialize input values with placeholders
+      const initialInputs: Record<string, string> = {};
+      functionData.inputs.forEach(input => {
+        initialInputs[input.name] = input.placeholder;
+      });
+      setInputValues(initialInputs);
+      setShowInputModal(true);
     }
     setDraggedFunction('');
     setDragOverIndex(null);
@@ -69,21 +126,21 @@ export default function Home() {
     const functionData = functions.find(f => f.id === functionId);
     
     if (functionData) {
-      const newWorkflowItem: WorkflowItem = {
-        id: `${functionData.id}-${Date.now()}`,
-        name: functionData.name,
-        functionId: functionData.id,
-      };
-      
       const boundingRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
       const mouseY = e.clientY;
       const itemCenterY = boundingRect.top + boundingRect.height / 2;
-      
-      // Insert before or after based on mouse position
       const insertIndex = mouseY < itemCenterY ? index : index + 1;
-      const newItems = [...workflowItems];
-      newItems.splice(insertIndex, 0, newWorkflowItem);
-      setWorkflowItems(newItems);
+      
+      setPendingFunction(functionData);
+      setPendingInsertIndex(insertIndex);
+      
+      // Initialize input values with placeholders
+      const initialInputs: Record<string, string> = {};
+      functionData.inputs.forEach(input => {
+        initialInputs[input.name] = input.placeholder;
+      });
+      setInputValues(initialInputs);
+      setShowInputModal(true);
     }
     
     setDraggedFunction('');
@@ -94,16 +151,54 @@ export default function Home() {
     setWorkflowItems(workflowItems.filter(item => item.id !== id));
   };
 
-  const executeFunction = (functionId: string, functionName: string) => {
-    const messages = {
-      'logonspf': `${functionName}: Successfully connected to mainframe with credentials. User XYZ logged in at folder path.`,
-      'editjcl': `${functionName}: JCL file edited successfully. Found 'abc1(&date)' and replaced with 'xyz1(250806)'. String replacements completed.`,
-      'execjcl': `${functionName}: JCL job 'JCL1(SHIPPRATEST.JCL1)' submitted successfully. Job execution started.`,
-      'executioncheck': `${functionName}: Job status checked. Job 'JOBABCA1' execution status retrieved from spool.`,
-      'getjoblog': `${functionName}: Job log retrieved successfully for 'JOBABCA1'. Log file generated using GetFile from mainframe.`
-    };
-    
-    return messages[functionId as keyof typeof messages] || `${functionName}: Function executed successfully`;
+  const handleInputChange = (inputName: string, value: string) => {
+    setInputValues(prev => ({
+      ...prev,
+      [inputName]: value
+    }));
+  };
+
+  const confirmAddFunction = () => {
+    if (pendingFunction && pendingInsertIndex !== null) {
+      const newWorkflowItem: WorkflowItem = {
+        id: `${pendingFunction.id}-${Date.now()}`,
+        name: pendingFunction.name,
+        functionId: pendingFunction.id,
+        inputs: { ...inputValues }
+      };
+      
+      const newItems = [...workflowItems];
+      newItems.splice(pendingInsertIndex, 0, newWorkflowItem);
+      setWorkflowItems(newItems);
+    }
+    setShowInputModal(false);
+    setPendingFunction(null);
+    setPendingInsertIndex(null);
+    setInputValues({});
+  };
+
+  const cancelAddFunction = () => {
+    setShowInputModal(false);
+    setPendingFunction(null);
+    setPendingInsertIndex(null);
+    setInputValues({});
+  };
+
+  const executeFunction = (functionId: string, functionName: string, inputs: Record<string, string>) => {
+    switch (functionId) {
+      case 'logonspf':
+        return `${functionName}: Successfully connected to mainframe with credentials. User ${inputs['User Name'] || 'XYZ'} logged in at ${inputs['Mainframe location'] || 'folder path'}.`;
+      case 'editjcl':
+        return `${functionName}: JCL file '${inputs['JCL Name'] || 'JCL1'}' edited successfully. Found '${inputs['String to be found1'] || 'abc1(&date)'}' and replaced with '${inputs['String to be replaced1'] || 'xyz1(250806)'}.`;
+      case 'execjcl':
+        return `${functionName}: JCL job '${inputs['JCL Name'] || 'JCL1(SHIPPRATEST.JCL1)'}' submitted successfully. Job execution started.`;
+      case 'executioncheck':
+        return `${functionName}: Job status checked. Job '${inputs['Job Name'] || 'JOBABCA1'}' execution status retrieved from spool on ${inputs['Job Run Date'] || 'Date'}.`;
+      case 'getjoblog':
+        return `${functionName}: Job log retrieved successfully for '${inputs['Job Name'] || 'JOBABCA1'}' on ${inputs['Job Run Date'] || 'Date'}. Log file generated using GetFile from mainframe.`;
+      default:
+        return `${functionName}: Function executed successfully`;
+    }
   };
 
   const runWorkflow = async () => {
@@ -117,7 +212,7 @@ export default function Home() {
     for (let i = 0; i < workflowItems.length; i++) {
       const currentItem = workflowItems[i];
       await new Promise(resolve => setTimeout(resolve, 1500));
-      const message = executeFunction(currentItem.functionId, currentItem.name);
+      const message = executeFunction(currentItem.functionId, currentItem.name, currentItem.inputs);
       alert(`Step ${i + 1}: ${message}`);
     }
     
@@ -258,6 +353,50 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Input Modal */}
+      {showInputModal && pendingFunction && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl border border-white/50 p-8 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h3 className="text-2xl font-bold mb-6 text-gray-800 text-center">
+              Configure {pendingFunction.name}
+            </h3>
+            <p className="text-gray-600 text-center mb-8">{pendingFunction.description}</p>
+            
+            <div className="space-y-6">
+              {pendingFunction.inputs.map((input: FunctionInput) => (
+                <div key={input.name} className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    {input.name}
+                  </label>
+                  <input
+                    type="text"
+                    value={inputValues[input.name] || ''}
+                    onChange={(e) => handleInputChange(input.name, e.target.value)}
+                    placeholder={input.placeholder}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-400 focus:outline-none transition-colors"
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-4 mt-8">
+              <button
+                onClick={cancelAddFunction}
+                className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmAddFunction}
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-semibold hover:from-emerald-600 hover:to-teal-700 transition-all transform hover:scale-105"
+              >
+                Add Function
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
