@@ -155,7 +155,7 @@ export default function Home() {
   const [draggedFunction, setDraggedFunction] = useState<string>('');
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [showInputModal, setShowInputModal] = useState(false);
-  const [pendingFunction, setPendingFunction] = useState<any>(null);
+  const [pendingFunction, setPendingFunction] = useState<typeof functions[0] | null>(null);
   const [pendingInsertIndex, setPendingInsertIndex] = useState<number | null>(null);
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
 
