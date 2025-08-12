@@ -16,13 +16,12 @@ interface FunctionInput {
 
 const functions = [
   { 
-    id: 'logonspf', 
-    name: 'LogonSPF', 
+    id: 'logonispf', 
+    name: 'LogonISPF', 
     description: 'Mainframe Connectivity',
     inputs: [
       { name: 'User Name', placeholder: 'XYZ' },
-      { name: 'Password', placeholder: '****' },
-      { name: 'Mainframe location', placeholder: 'folder path' }
+      { name: 'Password', placeholder: '****' }
     ]
   },
   { 
@@ -30,11 +29,13 @@ const functions = [
     name: 'EditJCL', 
     description: 'Job Edit',
     inputs: [
-      { name: 'JCL Name', placeholder: 'JCL1(SHIPPRATEST.JCL1)' },
-      { name: 'String to be found1', placeholder: 'abc1(&date)' },
-      { name: 'String to be replaced1', placeholder: 'xyz1(250806)' },
+      { name: 'JCL Name', placeholder: 'JCL1(SHIPRA.TEST.JCL1)' },
+      { name: 'String to be found1- Find string1', placeholder: 'abc1(&date)' },
+      { name: 'String to be replaced1- replace string1', placeholder: 'xyz1(250806)' },
       { name: 'String to be found2', placeholder: 'abc2' },
-      { name: 'String to be replaced2', placeholder: 'xyz2' }
+      { name: 'String to be replaced2', placeholder: 'xyz2' },
+      { name: 'String to be found-n', placeholder: 'value' },
+      { name: 'String to be replaced-n', placeholder: 'value' }
     ]
   },
   { 
@@ -81,8 +82,10 @@ const functions = [
     inputs: [
       { name: 'File Name1', placeholder: 'File1' },
       { name: 'Windows File Location', placeholder: 'File location' },
-      { name: 'Field1 Condition', placeholder: 'Value' },
-      { name: 'Field2 Condition', placeholder: 'Value' }
+      { name: 'Field1 Name', placeholder: 'Value' },
+      { name: 'Field1 Expected Value', placeholder: 'Value' },
+      { name: 'Field2 Name', placeholder: 'Value' },
+      { name: 'Field2 Expected Value', placeholder: 'Value' }
     ]
   },
   { 
@@ -94,10 +97,14 @@ const functions = [
       { name: 'File Location on windows', placeholder: 'Location' },
       { name: 'Copybook Name', placeholder: 'Layout Name' },
       { name: 'Copybook Location on windows', placeholder: 'Location' },
-      { name: 'Key Field-1', placeholder: 'Value' },
-      { name: 'Input Field-1', placeholder: 'Value' },
-      { name: 'Input Field-2', placeholder: 'Value' },
-      { name: 'Input Field-n', placeholder: 'Value' }
+      { name: 'Key Field-1-Name', placeholder: 'Value' },
+      { name: 'Key Field-1-Value', placeholder: 'Value' },
+      { name: 'Input Field-1-Name', placeholder: 'Value' },
+      { name: 'Input Field-1-Value', placeholder: 'Value' },
+      { name: 'Input Field-2-Name', placeholder: 'Value' },
+      { name: 'Input Field-2-Value', placeholder: 'Value' },
+      { name: 'Input Field-n-Name', placeholder: 'Value' },
+      { name: 'Input Field-n-Value', placeholder: 'Value' }
     ]
   },
   { 
@@ -144,7 +151,7 @@ const functions = [
     name: 'FileRecCount', 
     description: 'Get record count in a file',
     inputs: [
-      { name: 'File Name1', placeholder: 'File1(SHIPRA.TEST.FILE1)' }
+      { name: 'Mainframe File Name1', placeholder: 'File1(SHIPRA.TEST.FILE1)' }
     ]
   },
 ];
@@ -270,10 +277,10 @@ export default function Home() {
 
   const executeFunction = (functionId: string, functionName: string, inputs: Record<string, string>) => {
     switch (functionId) {
-      case 'logonspf':
-        return `${functionName}: Successfully connected to mainframe with credentials. User ${inputs['User Name'] || 'XYZ'} logged in at ${inputs['Mainframe location'] || 'folder path'}.`;
+      case 'logonispf':
+        return `${functionName}: Successfully connected to mainframe with credentials. User ${inputs['User Name'] || 'XYZ'} logged in successfully.`;
       case 'editjcl':
-        return `${functionName}: JCL file '${inputs['JCL Name'] || 'JCL1'}' edited successfully. Found '${inputs['String to be found1'] || 'abc1(&date)'}' and replaced with '${inputs['String to be replaced1'] || 'xyz1(250806)'}.`;
+        return `${functionName}: JCL file '${inputs['JCL Name'] || 'JCL1'}' edited successfully. Found '${inputs['String to be found1- Find string1'] || 'abc1(&date)'}' and replaced with '${inputs['String to be replaced1- replace string1'] || 'xyz1(250806)'}.`;
       case 'execjcl':
         return `${functionName}: JCL job '${inputs['JCL Name'] || 'JCL1(SHIPPRATEST.JCL1)'}' submitted successfully. Job execution started.`;
       case 'executioncheck':
@@ -283,9 +290,9 @@ export default function Home() {
       case 'filecomp1':
         return `${functionName}: File comparison completed. Compared '${inputs['File Name1'] || 'File1'}' at '${inputs['Windows File Location1'] || 'File location'}' and '${inputs['File Name2'] || 'File2'}' at '${inputs['Windows File Location2'] || 'File location'}'. Files compared and differences identified.`;
       case 'filecomp2':
-        return `${functionName}: File comparison with conditions completed. Verified '${inputs['File Name1'] || 'File1'}' for expected values. Field1 condition '${inputs['Field1 Condition'] || 'Value'}' and Field2 condition '${inputs['Field2 Condition'] || 'Value'}' checked. Differences mentioned.`;
+        return `${functionName}: File comparison with conditions completed. Verified '${inputs['File Name1'] || 'File1'}' for expected values. Field1 '${inputs['Field1 Name'] || 'Value'}' expected '${inputs['Field1 Expected Value'] || 'Value'}' and Field2 '${inputs['Field2 Name'] || 'Value'}' expected '${inputs['Field2 Expected Value'] || 'Value'}' checked. Differences mentioned.`;
       case 'createfile':
-        return `${functionName}: File created successfully. Created '${inputs['File Name'] || 'File1'}' at '${inputs['File Location on windows'] || 'Location'}' using copybook '${inputs['Copybook Name'] || 'Layout Name'}'. File edited as per conditions.`;
+        return `${functionName}: File created successfully. Created '${inputs['File Name'] || 'File1'}' at '${inputs['File Location on windows'] || 'Location'}' using copybook '${inputs['Copybook Name'] || 'Layout Name'}'. Key field '${inputs['Key Field-1-Name'] || 'Value'}' set to '${inputs['Key Field-1-Value'] || 'Value'}'. File edited as per conditions.`;
       case 'sendfile':
         return `${functionName}: File transfer completed successfully. Transferred '${inputs['Windows File name'] || 'File1'}' from '${inputs['Windows File Location'] || 'File location'}' to mainframe file '${inputs['Mainframe File Name'] || 'File2(SHIPRA.TEST.FILE2)'}'. Return message for successful data transfer.`;
       case 'getfile':
@@ -293,9 +300,9 @@ export default function Home() {
       case 'fileconv':
         return `${functionName}: File conversion completed successfully. Converted text file '${inputs['Text file name in windows'] || 'File1'}' to Excel file '${inputs['Excel file name'] || 'File3'}' using copybook '${inputs['Copybook name in windows'] || 'File2'}'. File converted to excel as per copybook layout.`;
       case 'gotoispfmainscreen':
-        return `${functionName}: Successfully returned to ISPF main screen. Pre-requisite LogonSPF should be true.`;
+        return `${functionName}: Successfully returned to ISPF main screen. Pre-requisite is that LogonISPF should be true.`;
       case 'filereccount':
-        return `${functionName}: Record count retrieved successfully. File '${inputs['File Name1'] || 'File1(SHIPRA.TEST.FILE1)'}' contains record count. Can be used to verify empty files.`;
+        return `${functionName}: Record count retrieved successfully. File '${inputs['Mainframe File Name1'] || 'File1(SHIPRA.TEST.FILE1)'}' contains record count. Can be used to verify empty files.`;
       default:
         return `${functionName}: Function executed successfully`;
     }
