@@ -1,3 +1,163 @@
+# 🔧 Test Workflow Generator
+
+> 🚀 A modern drag-and-drop test workflow builder with dynamic function management
+
+## 🆕 Latest Updates - Function Management System
+
+### 🎯 **New Features Added**
+
+#### ✨ **Dynamic Function Management**
+- **➕ Add Function** - Create custom functions with configurable input fields
+- **✏️ Edit Function** - Modify existing function names, descriptions, and input parameters  
+- **🗑️ Delete Function** - Remove functions with confirmation dialog
+- **💾 Local JSON Storage** - All functions stored in `data/functions.json` file
+
+#### 📁 **Local File-Based Architecture**
+- **📄 Function Data** - All function definitions moved to `data/functions.json`
+- **🔄 Real-time Updates** - Page operations automatically update the JSON file
+- **🌐 Git-based Sharing** - Function updates shared through repository pushes/pulls
+
+### 🖥️ **How to View and Test Changes**
+
+#### 🏠 **Local Development Setup**
+Since functions are now stored in local JSON files, you need to run the project locally:
+
+1. **📥 Clone/Pull Repository**
+   ```bash
+   git clone https://github.com/kei2333/test-workflow-nextjs.git
+   # OR if already cloned:
+   git pull origin master
+   ```
+
+2. **📦 Install Dependencies**
+   ```bash
+   cd test-workflow-nextjs
+   npm install
+   ```
+
+3. **🚀 Start Development Server**
+   ```bash
+   npm run dev
+   ```
+
+4. **🌐 Open in Browser**
+   ```
+   http://localhost:3000
+   ```
+
+#### 🔄 **Sharing Function Updates**
+- **💾 Local Changes** - When you add/edit/delete functions, `data/functions.json` is updated locally
+- **📤 Share Updates** - Push changes to repository:  
+  ```bash
+  git add . && git commit -m "Update functions" && git push
+  ```
+- **📥 Get Updates** - Others can see your function changes by running:  
+  ```bash
+  git pull
+  ```
+
+### 🎮 **How to Use the Function Management**
+
+1. **➕ Add New Function**
+   - Click "Add" button in Functions panel header
+   - Fill in function name, ID, description, and input fields
+   - Click "Add Function" to save
+
+2. **✏️ Edit Existing Function**
+   - Click the blue edit icon on any function card
+   - Modify fields as needed
+   - Click "Update Function" to save changes
+
+3. **🗑️ Delete Function**
+   - Click the red delete icon on any function card
+   - Confirm deletion in the dialog
+   - Function is immediately removed from JSON file
+
+4. **🔄 Build Workflows**
+   - Drag functions from left panel to workflow canvas
+   - Configure input values for each function
+   - Run complete workflow sequences
+
+---
+
+## 🔄 最新更新 - 函数管理系统
+
+### 🎯 **新增功能**
+
+#### ✨ **动态函数管理**
+- **➕ 添加函数功能** - 创建带可配置输入字段的自定义函数
+- **✏️ 编辑函数功能** - 修改现有函数的名称、描述和输入参数  
+- **🗑️ 删除函数功能** - 通过确认对话框删除函数
+- **💾 本地JSON存储** - 所有函数分割保存到 `data/functions.json` 文件中
+
+#### 📁 **基于本地文件的架构**
+- **📄 函数数据分离** - 所有函数定义迁移到独立的 `data/functions.json` 文件
+- **🔄 实时更新** - 页面上的每次操作都会自动更新本地JSON文件
+- **🌐 基于Git的协作** - 通过仓库推送/拉取来共享函数更新
+
+### 🖥️ **如何查看和测试更改**
+
+#### 🏠 **本地开发环境设置**
+由于函数现在存储在本地JSON文件中，需要在本地运行项目才能查看：
+
+1. **📥 克隆/拉取仓库**
+   ```bash
+   git clone https://github.com/kei2333/test-workflow-nextjs.git
+   # 或者如果已经克隆过：
+   git pull origin master
+   ```
+
+2. **📦 安装依赖**
+   ```bash
+   cd test-workflow-nextjs
+   npm install
+   ```
+
+3. **🚀 启动开发服务器**
+   ```bash
+   npm run dev
+   ```
+
+4. **🌐 在浏览器中查看**
+   ```
+   http://localhost:3000
+   ```
+
+#### 🔄 **共享函数更新**
+- **💾 本地更改** - 当你添加/编辑/删除函数时，`data/functions.json` 文件会在本地自动更新
+- **📤 分享更新** - 将更改推送到仓库：  
+  ```bash
+  git add . && git commit -m "更新函数列表" && git push
+  ```
+- **📥 获取更新** - 其他人需要通过以下命令才能看到你的函数更改：  
+  ```bash
+  git pull
+  ```
+
+### 🎮 **如何使用函数管理功能**
+
+1. **➕ 添加新函数**
+   - 点击Functions面板右上角的"Add"按钮
+   - 填写函数名称、ID、描述和输入字段
+   - 点击"Add Function"保存
+
+2. **✏️ 编辑现有函数**
+   - 点击任意函数卡片上的蓝色编辑图标
+   - 根据需要修改字段内容
+   - 点击"Update Function"保存更改
+
+3. **🗑️ 删除函数**
+   - 点击任意函数卡片上的红色删除图标
+   - 在确认对话框中确认删除
+   - 函数会立即从JSON文件中移除
+
+4. **🔄 构建工作流**
+   - 将函数从左侧面板拖拽到工作流画布
+   - 为每个函数配置输入值
+   - 运行完整的工作流序列
+
+---
+
 # 🔧 Test Workflow Generator - 5-Minute Code Overview
 
 > 🚀 A modern drag-and-drop test workflow builder with beautiful UI and seamless user experience
@@ -181,83 +341,6 @@ This project is open source and available under the MIT License.
 
 ---
 
-## 🔄 Recent Updates (Latest Version)
-
-### 🆕 v2.0 - Enhanced Function Management & UI Improvements
-
-**🛠️ Major Changes Made:**
-
-#### 🎯 **Function Management Overhaul**
-- **✅ Replaced complex management page** with streamlined popup windows
-- **📍 Relocated Add Function button** to Functions panel header for better UX
-- **🎨 Added inline edit/delete buttons** for each function card
-- **🚀 Improved popup design** following input interface style patterns
-
-#### 🌐 **Internationalization & UX**
-- **🇺🇸 Complete English translation** - All Chinese text converted to English
-- **💬 Updated user messages** - Alerts, confirmations, and labels now in English
-- **🎨 Enhanced button positioning** - More intuitive function management
-
-#### 🔧 **Technical Improvements**
-- **🐛 Fixed API configuration** - Resolved `dynamic = 'force-dynamic'` error
-- **✅ Verified JSON persistence** - Function CRUD operations properly update `functions.json`
-- **🧪 Comprehensive testing** - All features validated with MCP Playwright
-
-#### 📱 **UI/UX Enhancements**
-| Before | After |
-|--------|-------|
-| 🔗 Separate management page | 🎯 Inline popup windows |
-| 🇨🇳 Mixed Chinese/English text | 🇺🇸 Consistent English interface |
-| 📍 Floating Add button | 📌 Integrated header button |
-| ❌ 500 API errors | ✅ Stable API responses |
-
-### 📋 **Feature Summary (Current State)**
-✅ **13 Pre-built Functions** - Ready-to-use test functions  
-✅ **Dynamic Function Management** - Add, edit, delete via popups  
-✅ **Drag & Drop Workflow** - Intuitive test sequence building  
-✅ **JSON Data Persistence** - Changes saved to local file system  
-✅ **English Interface** - Fully localized user experience  
-✅ **Responsive Design** - Mobile-friendly layout  
-
-### 🎯 **Next Steps & Roadmap**
-- 📤 **Export/Import** - Workflow templates sharing
-- 🔄 **API Integration** - Connect to external test systems  
-- 📊 **Execution Reports** - Detailed test result analytics
-- 🎨 **Theme Customization** - Dark/light mode support
-
----
-
-## 🔄 更新日志 (中文版本)
-
-### 🆕 v2.0 - 功能管理增强与界面优化
-
-**🛠️ 主要改动:**
-
-#### 🎯 **函数管理重构**
-- **✅ 替换复杂的管理页面** 为简洁的弹窗设计
-- **📍 重新定位添加函数按钮** 到Functions面板头部，提升用户体验
-- **🎨 添加内联编辑/删除按钮** 为每个函数卡片
-- **🚀 优化弹窗设计** 遵循输入界面的设计风格
-
-#### 🌐 **国际化与用户体验**
-- **🇺🇸 完整英文翻译** - 所有中文文本转换为英文
-- **💬 更新用户消息** - 提醒、确认和标签现在都是英文
-- **🎨 增强按钮定位** - 更直观的函数管理
-
-#### 🔧 **技术改进**
-- **🐛 修复API配置** - 解决 `dynamic = 'force-dynamic'` 错误
-- **✅ 验证JSON持久化** - 函数CRUD操作正确更新 `functions.json`
-- **🧪 全面测试** - 所有功能通过MCP Playwright验证
-
-#### 📱 **界面/用户体验提升**
-| 之前 | 之后 |
-|------|------|
-| 🔗 独立管理页面 | 🎯 内联弹窗 |
-| 🇨🇳 中英文混合 | 🇺🇸 统一英文界面 |
-| 📍 浮动添加按钮 | 📌 集成头部按钮 |
-| ❌ 500 API错误 | ✅ 稳定API响应 |
-
----
 
 **💡 This codebase demonstrates modern React patterns, TypeScript best practices, and advanced CSS techniques in a practical, user-friendly application.**
 
