@@ -284,16 +284,5 @@
         "placeholder": "File1(SHIPRA.TEST.FILE1)"
       }
     ]
-  },
-  {
-    "id": "testfunction",
-    "name": "TestFunction",
-    "description": "Test function for verification",
-    "inputs": [
-      {
-        "name": "Test Input",
-        "placeholder": "Enter test value"
-      }
-    ]
   }
 ]
