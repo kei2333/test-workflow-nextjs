@@ -181,6 +181,82 @@ This project is open source and available under the MIT License.
 
 ---
 
+## 🔄 Recent Updates (Latest Version)
+
+### 🆕 v2.0 - Enhanced Function Management & UI Improvements
+
+**🛠️ Major Changes Made:**
+
+#### 🎯 **Function Management Overhaul**
+- **✅ Replaced complex management page** with streamlined popup windows
+- **📍 Relocated Add Function button** to Functions panel header for better UX
+- **🎨 Added inline edit/delete buttons** for each function card
+- **🚀 Improved popup design** following input interface style patterns
+
+#### 🌐 **Internationalization & UX**
+- **🇺🇸 Complete English translation** - All Chinese text converted to English
+- **💬 Updated user messages** - Alerts, confirmations, and labels now in English
+- **🎨 Enhanced button positioning** - More intuitive function management
+
+#### 🔧 **Technical Improvements**
+- **🐛 Fixed API configuration** - Resolved `dynamic = 'force-dynamic'` error
+- **✅ Verified JSON persistence** - Function CRUD operations properly update `functions.json`
+- **🧪 Comprehensive testing** - All features validated with MCP Playwright
+
+#### 📱 **UI/UX Enhancements**
+| Before | After |
+|--------|-------|
+| 🔗 Separate management page | 🎯 Inline popup windows |
+| 🇨🇳 Mixed Chinese/English text | 🇺🇸 Consistent English interface |
+| 📍 Floating Add button | 📌 Integrated header button |
+| ❌ 500 API errors | ✅ Stable API responses |
+
+### 📋 **Feature Summary (Current State)**
+✅ **13 Pre-built Functions** - Ready-to-use test functions  
+✅ **Dynamic Function Management** - Add, edit, delete via popups  
+✅ **Drag & Drop Workflow** - Intuitive test sequence building  
+✅ **JSON Data Persistence** - Changes saved to local file system  
+✅ **English Interface** - Fully localized user experience  
+✅ **Responsive Design** - Mobile-friendly layout  
+
+### 🎯 **Next Steps & Roadmap**
+- 📤 **Export/Import** - Workflow templates sharing
+- 🔄 **API Integration** - Connect to external test systems  
+- 📊 **Execution Reports** - Detailed test result analytics
+- 🎨 **Theme Customization** - Dark/light mode support
+
+---
+
+## 🔄 更新日志 (中文版本)
+
+### 🆕 v2.0 - 功能管理增强与界面优化
+
+**🛠️ 主要改动:**
+
+#### 🎯 **函数管理重构**
+- **✅ 替换复杂的管理页面** 为简洁的弹窗设计
+- **📍 重新定位添加函数按钮** 到Functions面板头部，提升用户体验
+- **🎨 添加内联编辑/删除按钮** 为每个函数卡片
+- **🚀 优化弹窗设计** 遵循输入界面的设计风格
+
+#### 🌐 **国际化与用户体验**
+- **🇺🇸 完整英文翻译** - 所有中文文本转换为英文
+- **💬 更新用户消息** - 提醒、确认和标签现在都是英文
+- **🎨 增强按钮定位** - 更直观的函数管理
+
+#### 🔧 **技术改进**
+- **🐛 修复API配置** - 解决 `dynamic = 'force-dynamic'` 错误
+- **✅ 验证JSON持久化** - 函数CRUD操作正确更新 `functions.json`
+- **🧪 全面测试** - 所有功能通过MCP Playwright验证
+
+#### 📱 **界面/用户体验提升**
+| 之前 | 之后 |
+|------|------|
+| 🔗 独立管理页面 | 🎯 内联弹窗 |
+| 🇨🇳 中英文混合 | 🇺🇸 统一英文界面 |
+| 📍 浮动添加按钮 | 📌 集成头部按钮 |
+| ❌ 500 API错误 | ✅ 稳定API响应 |
+
 ---
 
 **💡 This codebase demonstrates modern React patterns, TypeScript best practices, and advanced CSS techniques in a practical, user-friendly application.**

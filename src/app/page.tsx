@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface WorkflowItem {
   id: string;
@@ -14,157 +14,55 @@ interface FunctionInput {
   placeholder: string;
 }
 
-const functions = [
-  { 
-    id: 'logonispf', 
-    name: 'LogonISPF', 
-    description: 'Mainframe Connectivity',
-    inputs: [
-      { name: 'User Name', placeholder: 'XYZ' },
-      { name: 'Password', placeholder: '****' }
-    ]
-  },
-  { 
-    id: 'editjcl', 
-    name: 'EditJCL', 
-    description: 'Job Edit',
-    inputs: [
-      { name: 'JCL Name', placeholder: 'JCL1(SHIPRA.TEST.JCL1)' },
-      { name: 'String to be found1- Find string1', placeholder: 'abc1(&date)' },
-      { name: 'String to be replaced1- replace string1', placeholder: 'xyz1(250806)' },
-      { name: 'String to be found2', placeholder: 'abc2' },
-      { name: 'String to be replaced2', placeholder: 'xyz2' },
-      { name: 'String to be found-n', placeholder: 'value' },
-      { name: 'String to be replaced-n', placeholder: 'value' }
-    ]
-  },
-  { 
-    id: 'execjcl', 
-    name: 'ExecJCL', 
-    description: 'Job Execution',
-    inputs: [
-      { name: 'JCL Name', placeholder: 'JCL1(SHIPPRATEST.JCL1)' }
-    ]
-  },
-  { 
-    id: 'executioncheck', 
-    name: 'ExecutionCheck', 
-    description: 'Check Job Status',
-    inputs: [
-      { name: 'Job Name', placeholder: 'JOBABCA1' },
-      { name: 'Job Run Date', placeholder: 'Date' }
-    ]
-  },
-  { 
-    id: 'getjoblog', 
-    name: 'GetJobLog', 
-    description: 'Get Job Log',
-    inputs: [
-      { name: 'Job Name', placeholder: 'JOBABCA1' },
-      { name: 'Job Run Date', placeholder: 'Date' }
-    ]
-  },
-  { 
-    id: 'filecomp1', 
-    name: 'FileComp1', 
-    description: 'File Comparison',
-    inputs: [
-      { name: 'File Name1', placeholder: 'File1' },
-      { name: 'Windows File Location1', placeholder: 'File location' },
-      { name: 'File Name2', placeholder: 'File2' },
-      { name: 'Windows File Location2', placeholder: 'File location' }
-    ]
-  },
-  { 
-    id: 'filecomp2', 
-    name: 'FileComp2', 
-    description: 'File Comparison',
-    inputs: [
-      { name: 'File Name1', placeholder: 'File1' },
-      { name: 'Windows File Location', placeholder: 'File location' },
-      { name: 'Field1 Name', placeholder: 'Value' },
-      { name: 'Field1 Expected Value', placeholder: 'Value' },
-      { name: 'Field2 Name', placeholder: 'Value' },
-      { name: 'Field2 Expected Value', placeholder: 'Value' }
-    ]
-  },
-  { 
-    id: 'createfile', 
-    name: 'CreateFile', 
-    description: 'File Creation',
-    inputs: [
-      { name: 'File Name', placeholder: 'File1' },
-      { name: 'File Location on windows', placeholder: 'Location' },
-      { name: 'Copybook Name', placeholder: 'Layout Name' },
-      { name: 'Copybook Location on windows', placeholder: 'Location' },
-      { name: 'Key Field-1-Name', placeholder: 'Value' },
-      { name: 'Key Field-1-Value', placeholder: 'Value' },
-      { name: 'Input Field-1-Name', placeholder: 'Value' },
-      { name: 'Input Field-1-Value', placeholder: 'Value' },
-      { name: 'Input Field-2-Name', placeholder: 'Value' },
-      { name: 'Input Field-2-Value', placeholder: 'Value' },
-      { name: 'Input Field-n-Name', placeholder: 'Value' },
-      { name: 'Input Field-n-Value', placeholder: 'Value' }
-    ]
-  },
-  { 
-    id: 'sendfile', 
-    name: 'SendFile', 
-    description: 'Export Utility',
-    inputs: [
-      { name: 'Windows File name', placeholder: 'File1' },
-      { name: 'Windows File Location', placeholder: 'File location' },
-      { name: 'Mainframe File Name', placeholder: 'File2(SHIPRA.TEST.FILE2)' }
-    ]
-  },
-  { 
-    id: 'getfile', 
-    name: 'GetFile', 
-    description: 'Import Utility',
-    inputs: [
-      { name: 'Windows File name', placeholder: 'File1' },
-      { name: 'Windows File Location', placeholder: 'File location' },
-      { name: 'Mainframe File Name', placeholder: 'File2(SHIPRA.TEST.FILE2)' }
-    ]
-  },
-  { 
-    id: 'fileconv', 
-    name: 'FileConv', 
-    description: 'File Conversion to excel',
-    inputs: [
-      { name: 'Text file name in windows', placeholder: 'File1' },
-      { name: 'Windows text file location', placeholder: 'File location' },
-      { name: 'Copybook name in windows', placeholder: 'File2' },
-      { name: 'Windows Copybook Location', placeholder: 'Copybook location' },
-      { name: 'Excel file name', placeholder: 'File3' },
-      { name: 'Excel file location', placeholder: 'Excel file location' }
-    ]
-  },
-  { 
-    id: 'gotoispfmainscreen', 
-    name: 'GotoISPFmainscreen', 
-    description: 'Return to main screen',
-    inputs: []
-  },
-  { 
-    id: 'filereccount', 
-    name: 'FileRecCount', 
-    description: 'Get record count in a file',
-    inputs: [
-      { name: 'Mainframe File Name1', placeholder: 'File1(SHIPRA.TEST.FILE1)' }
-    ]
-  },
-];
+interface FunctionData {
+  id: string;
+  name: string;
+  description: string;
+  inputs: FunctionInput[];
+}
 
 export default function Home() {
+  const [functions, setFunctions] = useState<FunctionData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [workflowItems, setWorkflowItems] = useState<WorkflowItem[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [draggedFunction, setDraggedFunction] = useState<string>('');
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [showInputModal, setShowInputModal] = useState(false);
-  const [pendingFunction, setPendingFunction] = useState<typeof functions[0] | null>(null);
+  const [pendingFunction, setPendingFunction] = useState<FunctionData | null>(null);
   const [pendingInsertIndex, setPendingInsertIndex] = useState<number | null>(null);
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
+  
+  // 函数管理状态
+  const [showAddFunctionModal, setShowAddFunctionModal] = useState(false);
+  const [showEditFunctionModal, setShowEditFunctionModal] = useState(false);
+  const [editingFunction, setEditingFunction] = useState<FunctionData | null>(null);
+  const [functionFormData, setFunctionFormData] = useState({
+    id: '',
+    name: '',
+    description: '',
+    numberOfInputs: 0
+  });
+  const [functionInputs, setFunctionInputs] = useState<FunctionInput[]>([]);
+
+  // 加载函数数据
+  const loadFunctions = async () => {
+    try {
+      const response = await fetch('/api/functions');
+      if (response.ok) {
+        const data = await response.json();
+        setFunctions(data);
+      }
+    } catch (error) {
+      console.error('Failed to load functions:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadFunctions();
+  }, []);
 
   const handleDragStart = (e: React.DragEvent, functionId: string) => {
     setDraggedFunction(functionId);
@@ -275,6 +173,111 @@ export default function Home() {
     setInputValues({});
   };
 
+  // 函数管理相关方法
+  const resetFunctionForm = () => {
+    setFunctionFormData({ id: '', name: '', description: '', numberOfInputs: 0 });
+    setFunctionInputs([]);
+    setEditingFunction(null);
+  };
+
+  const handleAddNewFunction = () => {
+    resetFunctionForm();
+    setShowAddFunctionModal(true);
+  };
+
+  const handleEditFunction = (func: FunctionData) => {
+    setEditingFunction(func);
+    setFunctionFormData({
+      id: func.id,
+      name: func.name,
+      description: func.description,
+      numberOfInputs: func.inputs.length
+    });
+    setFunctionInputs([...func.inputs]);
+    setShowEditFunctionModal(true);
+  };
+
+  const handleDeleteFunction = async (id: string) => {
+    if (confirm('Are you sure you want to delete this function?')) {
+      try {
+        const response = await fetch(`/api/functions?id=${id}`, {
+          method: 'DELETE'
+        });
+        if (response.ok) {
+          await loadFunctions();
+          alert('Function deleted successfully!');
+        }
+      } catch (error) {
+        console.error('Failed to delete function:', error);
+        alert('Failed to delete function');
+      }
+    }
+  };
+
+  const handleFunctionInputCountChange = (count: number) => {
+    const newInputs = [...functionInputs];
+    
+    if (count > functionInputs.length) {
+      for (let i = functionInputs.length; i < count; i++) {
+        newInputs.push({ name: '', placeholder: '' });
+      }
+    } else if (count < functionInputs.length) {
+      newInputs.splice(count);
+    }
+    
+    setFunctionInputs(newInputs);
+    setFunctionFormData(prev => ({ ...prev, numberOfInputs: count }));
+  };
+
+  const updateFunctionInput = (index: number, field: 'name' | 'placeholder', value: string) => {
+    const newInputs = [...functionInputs];
+    newInputs[index][field] = value;
+    setFunctionInputs(newInputs);
+  };
+
+  const handleSaveFunction = async () => {
+    if (!functionFormData.name.trim() || !functionFormData.id.trim()) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    for (let i = 0; i < functionInputs.length; i++) {
+      if (!functionInputs[i].name.trim() || !functionInputs[i].placeholder.trim()) {
+        alert(`Please fill in all content for input field ${i + 1}`);
+        return;
+      }
+    }
+
+    const functionData: FunctionData = {
+      id: functionFormData.id,
+      name: functionFormData.name,
+      description: functionFormData.description,
+      inputs: functionInputs
+    };
+
+    try {
+      const response = await fetch('/api/functions', {
+        method: editingFunction ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(functionData)
+      });
+
+      if (response.ok) {
+        await loadFunctions();
+        setShowAddFunctionModal(false);
+        setShowEditFunctionModal(false);
+        resetFunctionForm();
+        alert(`Function ${editingFunction ? 'updated' : 'added'} successfully!`);
+      } else {
+        const error = await response.json();
+        alert(`Save failed: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Failed to save function:', error);
+      alert('Failed to save function');
+    }
+  };
+
   const executeFunction = (functionId: string, functionName: string, inputs: Record<string, string>) => {
     switch (functionId) {
       case 'logonispf':
@@ -327,6 +330,14 @@ export default function Home() {
     setIsRunning(false);
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6 flex items-center justify-center">
+        <div className="text-xl font-semibold text-gray-600">Loading functions...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
       <div className="max-w-7xl mx-auto">
@@ -342,20 +353,60 @@ export default function Home() {
         <div className="flex gap-8 h-[calc(100vh-120px)]">
           {/* Left Panel - Functions */}
           <div className="w-80 bg-white/90 backdrop-blur-lg rounded-3xl shadow-2xl border border-white/50 p-8 flex flex-col h-full">
-            <h2 className="text-2xl font-bold mb-8 text-gray-800 flex items-center gap-3">
-              <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
-              Functions
-            </h2>
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+                <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
+                Functions
+              </h2>
+              <button
+                onClick={handleAddNewFunction}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg font-semibold hover:from-emerald-600 hover:to-teal-700 transition-all transform hover:scale-105 shadow-md text-sm"
+                title="Add new function"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add
+              </button>
+            </div>
             <div className="space-y-4 flex-1 overflow-y-auto">
               {functions.map((func) => (
                 <div
                   key={func.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, func.id)}
-                  className="group bg-white border-2 border-emerald-200 hover:border-emerald-400 text-emerald-700 hover:text-emerald-800 p-5 rounded-2xl font-semibold text-center shadow-md hover:shadow-lg transform transition-all duration-300 cursor-grab active:cursor-grabbing hover:scale-105 hover:-rotate-1 relative overflow-hidden flex-shrink-0"
+                  className="group bg-white border-2 border-emerald-200 hover:border-emerald-400 p-5 rounded-2xl shadow-md hover:shadow-lg transform transition-all duration-300 relative overflow-hidden flex-shrink-0"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-emerald-50/0 via-emerald-50/60 to-emerald-50/0 transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-700"></div>
-                  <span className="relative z-10">{func.name}</span>
+                  
+                  <div className="relative z-10 flex items-center justify-between">
+                    <div 
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, func.id)}
+                      className="flex-1 text-emerald-700 hover:text-emerald-800 font-semibold text-center cursor-grab active:cursor-grabbing hover:scale-105 py-1"
+                    >
+                      {func.name}
+                    </div>
+                    
+                    <div className="flex gap-1 ml-2">
+                      <button
+                        onClick={() => handleEditFunction(func)}
+                        className="w-6 h-6 bg-blue-100 hover:bg-blue-200 rounded-full flex items-center justify-center transition-colors"
+                        title="Edit function"
+                      >
+                        <svg className="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteFunction(func.id)}
+                        className="w-6 h-6 bg-red-100 hover:bg-red-200 rounded-full flex items-center justify-center transition-colors"
+                        title="Delete function"
+                      >
+                        <svg className="w-3 h-3 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -459,51 +510,275 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Input Modal */}
-      {showInputModal && pendingFunction && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl shadow-2xl border border-white/50 p-8 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h3 className="text-2xl font-bold mb-6 text-gray-800 text-center">
-              Configure {pendingFunction.name}
-            </h3>
-            <p className="text-gray-600 text-center mb-8">{pendingFunction.description}</p>
-            
-            <div className="space-y-6">
-              {pendingFunction.inputs.map((input: FunctionInput) => (
-                <div key={input.name} className="space-y-2">
-                  <label className="block text-sm font-semibold text-gray-700">
-                    {input.name}
+        {/* Input Modal */}
+        {showInputModal && pendingFunction && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-3xl shadow-2xl border border-white/50 p-8 w-full max-w-md max-h-[90vh] overflow-y-auto">
+              <h3 className="text-2xl font-bold mb-6 text-gray-800 text-center">
+                Configure {pendingFunction.name}
+              </h3>
+              <p className="text-gray-600 text-center mb-8">{pendingFunction.description}</p>
+              
+              <div className="space-y-6">
+                {pendingFunction.inputs.map((input) => (
+                  <div key={input.name} className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-700">
+                      {input.name}
+                    </label>
+                    <input
+                      type="text"
+                      value={inputValues[input.name] || ''}
+                      onChange={(e) => handleInputChange(input.name, e.target.value)}
+                      placeholder={input.placeholder}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-400 focus:outline-none transition-colors"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-4 mt-8">
+                <button
+                  onClick={cancelAddFunction}
+                  className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmAddFunction}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-semibold hover:from-emerald-600 hover:to-teal-700 transition-all transform hover:scale-105"
+                >
+                  Add Function
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+
+        {/* Add Function Modal */}
+        {showAddFunctionModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-3xl shadow-2xl border border-white/50 p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <h3 className="text-2xl font-bold mb-6 text-gray-800 text-center">
+                Add New Function
+              </h3>
+              
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Function Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={functionFormData.name}
+                      onChange={(e) => setFunctionFormData(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="MyFunction"
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-400 focus:outline-none transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Function ID *
+                    </label>
+                    <input
+                      type="text"
+                      value={functionFormData.id}
+                      onChange={(e) => setFunctionFormData(prev => ({ ...prev, id: e.target.value }))}
+                      placeholder="myfunction"
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-400 focus:outline-none transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Description
                   </label>
                   <input
                     type="text"
-                    value={inputValues[input.name] || ''}
-                    onChange={(e) => handleInputChange(input.name, e.target.value)}
-                    placeholder={input.placeholder}
+                    value={functionFormData.description}
+                    onChange={(e) => setFunctionFormData(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Function description"
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-400 focus:outline-none transition-colors"
                   />
                 </div>
-              ))}
-            </div>
 
-            <div className="flex gap-4 mt-8">
-              <button
-                onClick={cancelAddFunction}
-                className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmAddFunction}
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-semibold hover:from-emerald-600 hover:to-teal-700 transition-all transform hover:scale-105"
-              >
-                Add Function
-              </button>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Number of Input Fields
+                  </label>
+                  <input
+                    type="number"
+                    value={functionFormData.numberOfInputs}
+                    onChange={(e) => handleFunctionInputCountChange(parseInt(e.target.value) || 0)}
+                    min="0"
+                    max="20"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-400 focus:outline-none transition-colors"
+                  />
+                </div>
+
+                {functionInputs.map((input, index) => (
+                  <div key={index} className="border-2 border-gray-100 rounded-xl p-4">
+                    <h4 className="font-semibold text-gray-700 mb-3">Input Field {index + 1}</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">
+                          Field Name *
+                        </label>
+                        <input
+                          type="text"
+                          value={input.name}
+                          onChange={(e) => updateFunctionInput(index, 'name', e.target.value)}
+                          placeholder="Field name"
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-emerald-400 focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">
+                          Placeholder *
+                        </label>
+                        <input
+                          type="text"
+                          value={input.placeholder}
+                          onChange={(e) => updateFunctionInput(index, 'placeholder', e.target.value)}
+                          placeholder="Placeholder text"
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-emerald-400 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-4 mt-8">
+                <button
+                  onClick={() => setShowAddFunctionModal(false)}
+                  className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveFunction}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-semibold hover:from-emerald-600 hover:to-teal-700 transition-all transform hover:scale-105"
+                >
+                  Add Function
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Edit Function Modal */}
+        {showEditFunctionModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-3xl shadow-2xl border border-white/50 p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <h3 className="text-2xl font-bold mb-6 text-gray-800 text-center">
+                Edit Function
+              </h3>
+              
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Function Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={functionFormData.name}
+                      onChange={(e) => setFunctionFormData(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-400 focus:outline-none transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Function ID *
+                    </label>
+                    <input
+                      type="text"
+                      value={functionFormData.id}
+                      disabled
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-100 text-gray-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Description
+                  </label>
+                  <input
+                    type="text"
+                    value={functionFormData.description}
+                    onChange={(e) => setFunctionFormData(prev => ({ ...prev, description: e.target.value }))}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-400 focus:outline-none transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Number of Input Fields
+                  </label>
+                  <input
+                    type="number"
+                    value={functionFormData.numberOfInputs}
+                    onChange={(e) => handleFunctionInputCountChange(parseInt(e.target.value) || 0)}
+                    min="0"
+                    max="20"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-400 focus:outline-none transition-colors"
+                  />
+                </div>
+
+                {functionInputs.map((input, index) => (
+                  <div key={index} className="border-2 border-gray-100 rounded-xl p-4">
+                    <h4 className="font-semibold text-gray-700 mb-3">Input Field {index + 1}</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">
+                          Field Name *
+                        </label>
+                        <input
+                          type="text"
+                          value={input.name}
+                          onChange={(e) => updateFunctionInput(index, 'name', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-emerald-400 focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">
+                          Placeholder *
+                        </label>
+                        <input
+                          type="text"
+                          value={input.placeholder}
+                          onChange={(e) => updateFunctionInput(index, 'placeholder', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-emerald-400 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-4 mt-8">
+                <button
+                  onClick={() => setShowEditFunctionModal(false)}
+                  className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveFunction}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all transform hover:scale-105"
+                >
+                  Update Function
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

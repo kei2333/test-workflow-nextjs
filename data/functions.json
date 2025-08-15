@@ -1,0 +1,299 @@
+[
+  {
+    "id": "logonispf",
+    "name": "LogonISPF",
+    "description": "Mainframe Connectivity",
+    "inputs": [
+      {
+        "name": "User Name",
+        "placeholder": "XYZ"
+      },
+      {
+        "name": "Password",
+        "placeholder": "****"
+      }
+    ]
+  },
+  {
+    "id": "editjcl",
+    "name": "EditJCL",
+    "description": "Job Edit",
+    "inputs": [
+      {
+        "name": "JCL Name",
+        "placeholder": "JCL1(SHIPRA.TEST.JCL1)"
+      },
+      {
+        "name": "String to be found1- Find string1",
+        "placeholder": "abc1(&date)"
+      },
+      {
+        "name": "String to be replaced1- replace string1",
+        "placeholder": "xyz1(250806)"
+      },
+      {
+        "name": "String to be found2",
+        "placeholder": "abc2"
+      },
+      {
+        "name": "String to be replaced2",
+        "placeholder": "xyz2"
+      },
+      {
+        "name": "String to be found-n",
+        "placeholder": "value"
+      },
+      {
+        "name": "String to be replaced-n",
+        "placeholder": "value"
+      }
+    ]
+  },
+  {
+    "id": "execjcl",
+    "name": "ExecJCL",
+    "description": "Job Execution",
+    "inputs": [
+      {
+        "name": "JCL Name",
+        "placeholder": "JCL1(SHIPPRATEST.JCL1)"
+      }
+    ]
+  },
+  {
+    "id": "executioncheck",
+    "name": "ExecutionCheck",
+    "description": "Check Job Status",
+    "inputs": [
+      {
+        "name": "Job Name",
+        "placeholder": "JOBABCA1"
+      },
+      {
+        "name": "Job Run Date",
+        "placeholder": "Date"
+      }
+    ]
+  },
+  {
+    "id": "getjoblog",
+    "name": "GetJobLog",
+    "description": "Get Job Log",
+    "inputs": [
+      {
+        "name": "Job Name",
+        "placeholder": "JOBABCA1"
+      },
+      {
+        "name": "Job Run Date",
+        "placeholder": "Date"
+      }
+    ]
+  },
+  {
+    "id": "filecomp1",
+    "name": "FileComp1",
+    "description": "File Comparison",
+    "inputs": [
+      {
+        "name": "File Name1",
+        "placeholder": "File1"
+      },
+      {
+        "name": "Windows File Location1",
+        "placeholder": "File location"
+      },
+      {
+        "name": "File Name2",
+        "placeholder": "File2"
+      },
+      {
+        "name": "Windows File Location2",
+        "placeholder": "File location"
+      }
+    ]
+  },
+  {
+    "id": "filecomp2",
+    "name": "FileComp2",
+    "description": "File Comparison",
+    "inputs": [
+      {
+        "name": "File Name1",
+        "placeholder": "File1"
+      },
+      {
+        "name": "Windows File Location",
+        "placeholder": "File location"
+      },
+      {
+        "name": "Field1 Name",
+        "placeholder": "Value"
+      },
+      {
+        "name": "Field1 Expected Value",
+        "placeholder": "Value"
+      },
+      {
+        "name": "Field2 Name",
+        "placeholder": "Value"
+      },
+      {
+        "name": "Field2 Expected Value",
+        "placeholder": "Value"
+      }
+    ]
+  },
+  {
+    "id": "createfile",
+    "name": "CreateFile",
+    "description": "File Creation",
+    "inputs": [
+      {
+        "name": "File Name",
+        "placeholder": "File1"
+      },
+      {
+        "name": "File Location on windows",
+        "placeholder": "Location"
+      },
+      {
+        "name": "Copybook Name",
+        "placeholder": "Layout Name"
+      },
+      {
+        "name": "Copybook Location on windows",
+        "placeholder": "Location"
+      },
+      {
+        "name": "Key Field-1-Name",
+        "placeholder": "Value"
+      },
+      {
+        "name": "Key Field-1-Value",
+        "placeholder": "Value"
+      },
+      {
+        "name": "Input Field-1-Name",
+        "placeholder": "Value"
+      },
+      {
+        "name": "Input Field-1-Value",
+        "placeholder": "Value"
+      },
+      {
+        "name": "Input Field-2-Name",
+        "placeholder": "Value"
+      },
+      {
+        "name": "Input Field-2-Value",
+        "placeholder": "Value"
+      },
+      {
+        "name": "Input Field-n-Name",
+        "placeholder": "Value"
+      },
+      {
+        "name": "Input Field-n-Value",
+        "placeholder": "Value"
+      }
+    ]
+  },
+  {
+    "id": "sendfile",
+    "name": "SendFile",
+    "description": "Export Utility",
+    "inputs": [
+      {
+        "name": "Windows File name",
+        "placeholder": "File1"
+      },
+      {
+        "name": "Windows File Location",
+        "placeholder": "File location"
+      },
+      {
+        "name": "Mainframe File Name",
+        "placeholder": "File2(SHIPRA.TEST.FILE2)"
+      }
+    ]
+  },
+  {
+    "id": "getfile",
+    "name": "GetFile",
+    "description": "Import Utility",
+    "inputs": [
+      {
+        "name": "Windows File name",
+        "placeholder": "File1"
+      },
+      {
+        "name": "Windows File Location",
+        "placeholder": "File location"
+      },
+      {
+        "name": "Mainframe File Name",
+        "placeholder": "File2(SHIPRA.TEST.FILE2)"
+      }
+    ]
+  },
+  {
+    "id": "fileconv",
+    "name": "FileConv",
+    "description": "File Conversion to excel",
+    "inputs": [
+      {
+        "name": "Text file name in windows",
+        "placeholder": "File1"
+      },
+      {
+        "name": "Windows text file location",
+        "placeholder": "File location"
+      },
+      {
+        "name": "Copybook name in windows",
+        "placeholder": "File2"
+      },
+      {
+        "name": "Windows Copybook Location",
+        "placeholder": "Copybook location"
+      },
+      {
+        "name": "Excel file name",
+        "placeholder": "File3"
+      },
+      {
+        "name": "Excel file location",
+        "placeholder": "Excel file location"
+      }
+    ]
+  },
+  {
+    "id": "gotoispfmainscreen",
+    "name": "GotoISPFmainscreen",
+    "description": "Return to main screen",
+    "inputs": []
+  },
+  {
+    "id": "filereccount",
+    "name": "FileRecCount",
+    "description": "Get record count in a file",
+    "inputs": [
+      {
+        "name": "Mainframe File Name1",
+        "placeholder": "File1(SHIPRA.TEST.FILE1)"
+      }
+    ]
+  },
+  {
+    "id": "testfunction",
+    "name": "TestFunction",
+    "description": "Test function for verification",
+    "inputs": [
+      {
+        "name": "Test Input",
+        "placeholder": "Enter test value"
+      }
+    ]
+  }
+]
