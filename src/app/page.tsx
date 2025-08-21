@@ -328,9 +328,9 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-5">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-12">
+        <div className="text-center mb-7">
           <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-4">
             Test Workflow Generator
           </h1>
@@ -339,7 +339,7 @@ export default function Home() {
           </p>
         </div>
         
-        <div className="flex gap-8 h-[calc(100vh-120px)]">
+        <div className="flex gap-8 h-[calc(100vh-190px)]">
           {/* Left Panel - Functions */}
           <div className="w-80 bg-white/90 backdrop-blur-lg rounded-3xl shadow-2xl border border-white/50 p-8 flex flex-col h-full">
             <h2 className="text-2xl font-bold mb-8 text-gray-800 flex items-center gap-3">
