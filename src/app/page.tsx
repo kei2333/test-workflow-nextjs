@@ -1,79 +1,114 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-
-interface WorkflowItem {
-  id: string;
-  name: string;
-  functionId: string;
-  inputs: Record<string, string>;
-}
-
-interface FunctionInput {
-  name: string;
-  placeholder: string;
-}
-
-interface FunctionData {
-  id: string;
-  name: string;
-  description: string;
-  inputs: FunctionInput[];
-}
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { FunctionData } from '@/types/workflow';
+import { EnhancedFunctionList } from '@/components/EnhancedFunctionList';
+import { EnhancedWorkflowCanvas } from '@/components/EnhancedWorkflowCanvas';
+import { InputConfigModal } from '@/components/InputConfigModal';
+import { FunctionManagementModal } from '@/components/FunctionManagementModal';
+import { useFunctions } from '@/hooks/useFunctions';
+import { useWorkflow } from '@/hooks/useWorkflow';
+import { useExecutionLog } from '@/hooks/useExecutionLog';
+import { FunctionExecutor, ExecutionProgress } from '@/services/functionExecutor';
 
 export default function Home() {
-  const [functions, setFunctions] = useState<FunctionData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [workflowItems, setWorkflowItems] = useState<WorkflowItem[]>([]);
-  const [isRunning, setIsRunning] = useState(false);
+  // Custom hooks
+  const { 
+    functions, 
+    isLoading, 
+    error: functionsError, 
+    addFunction, 
+    updateFunction, 
+    deleteFunction 
+  } = useFunctions();
+  
+  const { 
+    workflowItems, 
+    addWorkflowItem, 
+    removeWorkflowItem
+  } = useWorkflow();
+  
+  // Removed notification system - using execution log only
+  
+  const { 
+    logs, 
+    addLog, 
+    clearLogs 
+  } = useExecutionLog();
+
+  // State for drag and drop
   const [draggedFunction, setDraggedFunction] = useState<string>('');
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-  const [showInputModal, setShowInputModal] = useState(false);
-  const [pendingFunction, setPendingFunction] = useState<FunctionData | null>(null);
-  const [pendingInsertIndex, setPendingInsertIndex] = useState<number | null>(null);
-  const [inputValues, setInputValues] = useState<Record<string, string>>({});
   
-  // 函数管理状态
+  // State for modals
+  const [showInputModal, setShowInputModal] = useState(false);
   const [showAddFunctionModal, setShowAddFunctionModal] = useState(false);
   const [showEditFunctionModal, setShowEditFunctionModal] = useState(false);
   const [editingFunction, setEditingFunction] = useState<FunctionData | null>(null);
-  const [functionFormData, setFunctionFormData] = useState({
-    id: '',
-    name: '',
-    description: '',
-    numberOfInputs: 0
-  });
-  const [functionInputs, setFunctionInputs] = useState<FunctionInput[]>([]);
+  const [pendingFunction, setPendingFunction] = useState<FunctionData | null>(null);
+  const [pendingInsertIndex, setPendingInsertIndex] = useState<number | null>(null);
+  
+  // State for workflow execution
+  const [executionProgress, setExecutionProgress] = useState<ExecutionProgress | null>(null);
+  
+  // Ref for auto-scrolling logs
+  const logEndRef = useRef<HTMLDivElement>(null);
 
-  // 加载函数数据
-  const loadFunctions = async () => {
-    try {
-      const response = await fetch('/api/functions');
-      if (response.ok) {
-        const data = await response.json();
-        setFunctions(data);
-      }
-    } catch (error) {
-      console.error('Failed to load functions:', error);
-    } finally {
-      setIsLoading(false);
+  // Show error logs for functions API
+  React.useEffect(() => {
+    if (functionsError) {
+      addLog('error', functionsError);
     }
-  };
+  }, [functionsError, addLog]);
 
+  // Auto-scroll logs to bottom
   useEffect(() => {
-    loadFunctions();
-  }, []);
+    if (logEndRef.current && logs.length > 0) {
+      logEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [logs]);
 
-  const handleDragStart = (e: React.DragEvent, functionId: string) => {
+  // Drag and drop handlers
+  const handleDragStart = useCallback((e: React.DragEvent, functionId: string) => {
     setDraggedFunction(functionId);
     e.dataTransfer.setData('text/plain', functionId);
-  };
+    
+    // Create custom drag image
+    const draggedFunc = functions.find(f => f.id === functionId);
+    if (draggedFunc) {
+      const dragImage = document.createElement('div');
+      dragImage.style.cssText = `
+        position: absolute;
+        top: -1000px;
+        left: -1000px;
+        background: linear-gradient(135deg, #3B82F6, #06B6D4, #10B981);
+        color: white;
+        padding: 12px 16px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 14px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        backdrop-filter: blur(8px);
+        max-width: 200px;
+      `;
+      dragImage.textContent = draggedFunc.name;
+      document.body.appendChild(dragImage);
+      
+      e.dataTransfer.setDragImage(dragImage, 100, 20);
+      
+      // Clean up after drag starts
+      setTimeout(() => {
+        document.body.removeChild(dragImage);
+      }, 0);
+    }
+  }, [functions]);
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-  };
+  }, []);
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     const functionId = e.dataTransfer.getData('text/plain');
     const functionData = functions.find(f => f.id === functionId);
@@ -81,20 +116,13 @@ export default function Home() {
     if (functionData) {
       setPendingFunction(functionData);
       setPendingInsertIndex(workflowItems.length);
-      
-      // Initialize input values with placeholders
-      const initialInputs: Record<string, string> = {};
-      functionData.inputs.forEach(input => {
-        initialInputs[input.name] = input.placeholder;
-      });
-      setInputValues(initialInputs);
       setShowInputModal(true);
     }
     setDraggedFunction('');
     setDragOverIndex(null);
-  };
+  }, [functions, workflowItems.length]);
 
-  const handleItemDragOver = (e: React.DragEvent, index: number) => {
+  const handleItemDragOver = useCallback((e: React.DragEvent, index: number) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -102,12 +130,11 @@ export default function Home() {
     const mouseY = e.clientY;
     const itemCenterY = boundingRect.top + boundingRect.height / 2;
     
-    // Determine if we should insert before or after this item
     const insertIndex = mouseY < itemCenterY ? index : index + 1;
     setDragOverIndex(insertIndex);
-  };
+  }, []);
 
-  const handleItemDrop = (e: React.DragEvent, index: number) => {
+  const handleItemDrop = useCallback((e: React.DragEvent, index: number) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -122,662 +149,309 @@ export default function Home() {
       
       setPendingFunction(functionData);
       setPendingInsertIndex(insertIndex);
-      
-      // Initialize input values with placeholders
-      const initialInputs: Record<string, string> = {};
-      functionData.inputs.forEach(input => {
-        initialInputs[input.name] = input.placeholder;
-      });
-      setInputValues(initialInputs);
       setShowInputModal(true);
     }
     
     setDraggedFunction('');
     setDragOverIndex(null);
-  };
+  }, [functions]);
 
-  const removeFromWorkflow = (id: string) => {
-    setWorkflowItems(workflowItems.filter(item => item.id !== id));
-  };
-
-  const handleInputChange = (inputName: string, value: string) => {
-    setInputValues(prev => ({
-      ...prev,
-      [inputName]: value
-    }));
-  };
-
-  const confirmAddFunction = () => {
+  // Modal handlers
+  const handleInputConfirm = useCallback((inputs: Record<string, string>) => {
     if (pendingFunction && pendingInsertIndex !== null) {
-      const newWorkflowItem: WorkflowItem = {
-        id: `${pendingFunction.id}-${Date.now()}`,
-        name: pendingFunction.name,
-        functionId: pendingFunction.id,
-        inputs: { ...inputValues }
-      };
-      
-      const newItems = [...workflowItems];
-      newItems.splice(pendingInsertIndex, 0, newWorkflowItem);
-      setWorkflowItems(newItems);
+      addWorkflowItem(pendingFunction, inputs, pendingInsertIndex);
+      addLog('success', `${pendingFunction.name} added to workflow`);
     }
     setShowInputModal(false);
     setPendingFunction(null);
     setPendingInsertIndex(null);
-    setInputValues({});
-  };
+  }, [pendingFunction, pendingInsertIndex, addWorkflowItem, addLog]);
 
-  const cancelAddFunction = () => {
+  const handleInputCancel = useCallback(() => {
     setShowInputModal(false);
     setPendingFunction(null);
     setPendingInsertIndex(null);
-    setInputValues({});
-  };
+  }, []);
 
-  // 函数管理相关方法
-  const resetFunctionForm = () => {
-    setFunctionFormData({ id: '', name: '', description: '', numberOfInputs: 0 });
-    setFunctionInputs([]);
+  // Function management handlers
+  const handleAddNewFunction = useCallback(() => {
     setEditingFunction(null);
-  };
-
-  const handleAddNewFunction = () => {
-    resetFunctionForm();
     setShowAddFunctionModal(true);
-  };
+  }, []);
 
-  const handleEditFunction = (func: FunctionData) => {
+  const handleEditFunction = useCallback((func: FunctionData) => {
     setEditingFunction(func);
-    setFunctionFormData({
-      id: func.id,
-      name: func.name,
-      description: func.description,
-      numberOfInputs: func.inputs.length
-    });
-    setFunctionInputs([...func.inputs]);
     setShowEditFunctionModal(true);
-  };
+  }, []);
 
-  const handleDeleteFunction = async (id: string) => {
-    if (confirm('Are you sure you want to delete this function?')) {
-      try {
-        const response = await fetch(`/api/functions?id=${id}`, {
-          method: 'DELETE'
-        });
-        if (response.ok) {
-          await loadFunctions();
-          alert('Function deleted successfully!');
-        }
-      } catch (error) {
-        console.error('Failed to delete function:', error);
-        alert('Failed to delete function');
-      }
+  const handleDeleteFunction = useCallback(async (id: string) => {
+    const success = await deleteFunction(id);
+    if (success) {
+      addLog('info', `Function deleted successfully`);
+    } else {
+      addLog('error', 'Failed to delete function');
     }
-  };
+  }, [deleteFunction, addLog]);
 
-  const handleFunctionInputCountChange = (count: number) => {
-    const newInputs = [...functionInputs];
-    
-    if (count > functionInputs.length) {
-      for (let i = functionInputs.length; i < count; i++) {
-        newInputs.push({ name: '', placeholder: '' });
-      }
-    } else if (count < functionInputs.length) {
-      newInputs.splice(count);
+  const handleSaveFunction = useCallback(async (functionData: FunctionData): Promise<boolean> => {
+    const success = editingFunction
+      ? await updateFunction(functionData)
+      : await addFunction(functionData);
+
+    if (success) {
+      addLog('success', `Function ${editingFunction ? 'updated' : 'added'} successfully`);
+      setShowAddFunctionModal(false);
+      setShowEditFunctionModal(false);
+      setEditingFunction(null);
+    } else {
+      addLog('error', `Failed to ${editingFunction ? 'update' : 'add'} function`);
     }
-    
-    setFunctionInputs(newInputs);
-    setFunctionFormData(prev => ({ ...prev, numberOfInputs: count }));
-  };
 
-  const updateFunctionInput = (index: number, field: 'name' | 'placeholder', value: string) => {
-    const newInputs = [...functionInputs];
-    newInputs[index][field] = value;
-    setFunctionInputs(newInputs);
-  };
+    return success;
+  }, [editingFunction, addFunction, updateFunction, addLog]);
 
-  const handleSaveFunction = async () => {
-    if (!functionFormData.name.trim() || !functionFormData.id.trim()) {
-      alert('Please fill in all required fields');
+  // Workflow execution
+  const handleRunWorkflow = useCallback(async () => {
+    if (workflowItems.length === 0) {
+      addLog('warning', 'Please add functions to your workflow before running');
       return;
     }
 
-    for (let i = 0; i < functionInputs.length; i++) {
-      if (!functionInputs[i].name.trim() || !functionInputs[i].placeholder.trim()) {
-        alert(`Please fill in all content for input field ${i + 1}`);
-        return;
-      }
-    }
-
-    const functionData: FunctionData = {
-      id: functionFormData.id,
-      name: functionFormData.name,
-      description: functionFormData.description,
-      inputs: functionInputs
-    };
+    // Clear previous logs and start logging
+    clearLogs();
+    addLog('info', '🚀 Starting workflow execution...');
 
     try {
-      const response = await fetch('/api/functions', {
-        method: editingFunction ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(functionData)
+      const results = await FunctionExecutor.executeWorkflow(
+        workflowItems,
+        (progress) => {
+          setExecutionProgress(progress);
+          if (progress.currentStep <= workflowItems.length) {
+            const currentItem = workflowItems[progress.currentStep - 1];
+            addLog('info', `⏳ Executing step ${progress.currentStep} of ${progress.totalSteps}...`, currentItem?.name);
+          }
+        }
+      );
+
+      // Log results (only in execution log, avoid duplicate notifications)
+      results.forEach((result, index) => {
+        const stepName = workflowItems[index]?.name;
+        if (result.success) {
+          addLog('success', result.message, stepName);
+        } else {
+          addLog('error', result.message, stepName);
+        }
       });
 
-      if (response.ok) {
-        await loadFunctions();
-        setShowAddFunctionModal(false);
-        setShowEditFunctionModal(false);
-        resetFunctionForm();
-        alert(`Function ${editingFunction ? 'updated' : 'added'} successfully!`);
+      const successCount = results.filter(r => r.success).length;
+      const totalSteps = results.length;
+      
+      if (successCount === totalSteps) {
+        addLog('success', `✅ Workflow completed successfully! All ${totalSteps} steps executed.`);
+        // Success already logged in execution log
       } else {
-        const error = await response.json();
-        alert(`Save failed: ${error.error}`);
+        addLog('warning', `⚠️ Workflow completed with issues: ${successCount}/${totalSteps} steps succeeded.`);
+        // Warning already logged in execution log
       }
+
     } catch (error) {
-      console.error('Failed to save function:', error);
-      alert('Failed to save function');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      addLog('error', `❌ Failed to execute workflow: ${errorMessage}`);
+    } finally {
+      setExecutionProgress(null);
     }
-  };
+  }, [workflowItems, addLog, clearLogs]);
 
-  const executeFunction = (functionId: string, functionName: string, inputs: Record<string, string>) => {
-    switch (functionId) {
-      case 'logonispf':
-        return `${functionName}: Successfully connected to mainframe with credentials. User ${inputs['User Name'] || 'XYZ'} logged in successfully.`;
-      case 'editjcl':
-        return `${functionName}: JCL file '${inputs['JCL Name'] || 'JCL1'}' edited successfully. Found '${inputs['String to be found1- Find string1'] || 'abc1(&date)'}' and replaced with '${inputs['String to be replaced1- replace string1'] || 'xyz1(250806)'}.`;
-      case 'execjcl':
-        return `${functionName}: JCL job '${inputs['JCL Name'] || 'JCL1(SHIPPRATEST.JCL1)'}' submitted successfully. Job execution started.`;
-      case 'executioncheck':
-        return `${functionName}: Job status checked. Job '${inputs['Job Name'] || 'JOBABCA1'}' execution status retrieved from spool on ${inputs['Job Run Date'] || 'Date'}.`;
-      case 'getjoblog':
-        return `${functionName}: Job log retrieved successfully for '${inputs['Job Name'] || 'JOBABCA1'}' on ${inputs['Job Run Date'] || 'Date'}. Log file generated using GetFile from mainframe.`;
-      case 'filecomp1':
-        return `${functionName}: File comparison completed. Compared '${inputs['File Name1'] || 'File1'}' at '${inputs['Windows File Location1'] || 'File location'}' and '${inputs['File Name2'] || 'File2'}' at '${inputs['Windows File Location2'] || 'File location'}'. Files compared and differences identified.`;
-      case 'filecomp2':
-        return `${functionName}: File comparison with conditions completed. Verified '${inputs['File Name1'] || 'File1'}' for expected values. Field1 '${inputs['Field1 Name'] || 'Value'}' expected '${inputs['Field1 Expected Value'] || 'Value'}' and Field2 '${inputs['Field2 Name'] || 'Value'}' expected '${inputs['Field2 Expected Value'] || 'Value'}' checked. Differences mentioned.`;
-      case 'createfile':
-        return `${functionName}: File created successfully. Created '${inputs['File Name'] || 'File1'}' at '${inputs['File Location on windows'] || 'Location'}' using copybook '${inputs['Copybook Name'] || 'Layout Name'}'. Key field '${inputs['Key Field-1-Name'] || 'Value'}' set to '${inputs['Key Field-1-Value'] || 'Value'}'. File edited as per conditions.`;
-      case 'sendfile':
-        return `${functionName}: File transfer completed successfully. Transferred '${inputs['Windows File name'] || 'File1'}' from '${inputs['Windows File Location'] || 'File location'}' to mainframe file '${inputs['Mainframe File Name'] || 'File2(SHIPRA.TEST.FILE2)'}'. Return message for successful data transfer.`;
-      case 'getfile':
-        return `${functionName}: File import completed successfully. Retrieved '${inputs['Mainframe File Name'] || 'File2(SHIPRA.TEST.FILE2)'}' to '${inputs['Windows File name'] || 'File1'}' at '${inputs['Windows File Location'] || 'File location'}'. Return message for successful data transfer.`;
-      case 'fileconv':
-        return `${functionName}: File conversion completed successfully. Converted text file '${inputs['Text file name in windows'] || 'File1'}' to Excel file '${inputs['Excel file name'] || 'File3'}' using copybook '${inputs['Copybook name in windows'] || 'File2'}'. File converted to excel as per copybook layout.`;
-      case 'gotoispfmainscreen':
-        return `${functionName}: Successfully returned to ISPF main screen. Pre-requisite is that LogonISPF should be true.`;
-      case 'filereccount':
-        return `${functionName}: Record count retrieved successfully. File '${inputs['Mainframe File Name1'] || 'File1(SHIPRA.TEST.FILE1)'}' contains record count. Can be used to verify empty files.`;
-      default:
-        return `${functionName}: Function executed successfully`;
-    }
-  };
-
-  const runWorkflow = async () => {
-    if (workflowItems.length === 0) {
-      alert('Please add functions to your workflow before running.');
-      return;
-    }
-
-    setIsRunning(true);
-    
-    for (let i = 0; i < workflowItems.length; i++) {
-      const currentItem = workflowItems[i];
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      const message = executeFunction(currentItem.functionId, currentItem.name, currentItem.inputs);
-      alert(`Step ${i + 1}: ${message}`);
-    }
-    
-    alert('Workflow execution completed successfully!');
-    setIsRunning(false);
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6 flex items-center justify-center">
-        <div className="text-xl font-semibold text-gray-600">Loading functions...</div>
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-4">
-            Test Workflow Generator
-          </h1>
-          <p className="text-xl text-gray-600 font-medium">
-            Drag and drop functions to create powerful test workflows
-          </p>
-        </div>
-        
-        <div className="flex gap-8 h-[calc(100vh-190px)]">
-          {/* Left Panel - Functions */}
-          <div className="w-80 bg-white/90 backdrop-blur-lg rounded-3xl shadow-2xl border border-white/50 p-8 flex flex-col h-full">
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
-                <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
-                Functions
-              </h2>
-              <button
-                onClick={handleAddNewFunction}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg font-semibold hover:from-emerald-600 hover:to-teal-700 transition-all transform hover:scale-105 shadow-md text-sm"
-                title="Add new function"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Add
-              </button>
-            </div>
-            <div className="space-y-4 flex-1 overflow-y-auto">
-              {functions.map((func) => (
-                <div
-                  key={func.id}
-                  className="group bg-white border-2 border-emerald-200 hover:border-emerald-400 p-5 rounded-2xl shadow-md hover:shadow-lg transform transition-all duration-300 relative overflow-hidden flex-shrink-0"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-50/0 via-emerald-50/60 to-emerald-50/0 transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-700"></div>
-                  
-                  <div className="relative z-10 flex items-center justify-between">
-                    <div 
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, func.id)}
-                      className="flex-1 text-emerald-700 hover:text-emerald-800 font-semibold text-center cursor-grab active:cursor-grabbing hover:scale-105 py-1"
-                    >
-                      {func.name}
-                    </div>
-                    
-                    <div className="flex gap-1 ml-2">
-                      <button
-                        onClick={() => handleEditFunction(func)}
-                        className="w-6 h-6 bg-blue-100 hover:bg-blue-200 rounded-full flex items-center justify-center transition-colors"
-                        title="Edit function"
-                      >
-                        <svg className="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => handleDeleteFunction(func.id)}
-                        className="w-6 h-6 bg-red-100 hover:bg-red-200 rounded-full flex items-center justify-center transition-colors"
-                        title="Delete function"
-                      >
-                        <svg className="w-3 h-3 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 relative overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-32 w-80 h-80 bg-gradient-to-br from-blue-400/10 to-emerald-600/10 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-32 w-80 h-80 bg-gradient-to-br from-emerald-400/10 to-teal-600/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-cyan-400/5 to-blue-600/5 rounded-full blur-3xl"></div>
+      </div>
+
+      
+      <div className="max-w-7xl mx-auto relative z-10">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-4">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-600 bg-clip-text text-transparent">
+              Test Workflow Generator
+            </h1>
+            <div className="flex items-center gap-3 text-base text-gray-500">
+              <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                <span>{functions.length} Functions</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></div>
+                <span>{workflowItems.length} Steps</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-pulse"></div>
+                <span>{logs.length} Logs</span>
+              </div>
             </div>
           </div>
+        </div>
+        
+        <div className="flex gap-3 h-[calc(100vh-100px)]" role="main">
+          {/* Functions Panel */}
+          <div className="w-80">
+            <EnhancedFunctionList
+              functions={functions}
+              onDragStart={handleDragStart}
+              onAddFunction={handleAddNewFunction}
+              onEditFunction={handleEditFunction}
+              onDeleteFunction={handleDeleteFunction}
+              isLoading={isLoading}
+            />
+          </div>
 
-          {/* Right Panel - Workflow */}
-          <div className="flex-1 bg-white/90 backdrop-blur-lg rounded-3xl shadow-2xl border border-white/50 p-8 flex flex-col h-full">
-            <div className="flex justify-between items-center mb-8 flex-shrink-0">
-              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
-                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                Test Workflow
-              </h2>
-              <button
-                onClick={runWorkflow}
-                disabled={isRunning}
-                className={`
-                  px-8 py-4 rounded-2xl font-bold text-white text-lg
-                  transform transition-all duration-300 shadow-lg
-                  ${isRunning 
-                    ? 'bg-gradient-to-r from-gray-400 to-gray-500 cursor-not-allowed' 
-                    : 'bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 hover:from-blue-600 hover:via-blue-700 hover:to-indigo-700 hover:scale-105 hover:shadow-2xl active:scale-95'
-                  }
-                `}
-              >
-                {isRunning ? (
-                  <span className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Running...
-                  </span>
-                ) : (
-                  'Run Workflow'
-                )}
-              </button>
-            </div>
-
-            <div
+          {/* Workflow Canvas */}
+          <div className="flex-1">
+            <EnhancedWorkflowCanvas
+              workflowItems={workflowItems}
+              draggedFunction={draggedFunction}
+              dragOverIndex={dragOverIndex}
+              executionProgress={executionProgress}
               onDragOver={handleDragOver}
               onDrop={handleDrop}
-              className={`
-                flex-1 min-h-0 border-2 border-dashed rounded-3xl p-8
-                transition-all duration-300 relative
-                ${draggedFunction 
-                  ? 'border-emerald-400 bg-gradient-to-br from-emerald-50 to-teal-50' 
-                  : 'border-gray-300 bg-gradient-to-br from-gray-50 to-slate-100'
-                }
-              `}
-            >
-              {workflowItems.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center">
-                  <div className="w-24 h-24 bg-gradient-to-br from-gray-200 to-gray-300 rounded-full flex items-center justify-center mb-6">
-                    <svg className="w-12 h-12 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
-                    </svg>
+              onItemDragOver={handleItemDragOver}
+              onItemDrop={handleItemDrop}
+              onRemoveItem={removeWorkflowItem}
+              onRunWorkflow={handleRunWorkflow}
+              isRunning={!!executionProgress?.isRunning}
+            />
+          </div>
+
+          {/* Execution Log Panel */}
+          <div className="w-80">
+            <div className="bg-gradient-to-br from-white via-blue-50/30 to-cyan-50/20 backdrop-blur-xl rounded-2xl shadow-xl border border-white/60 h-full relative overflow-hidden">
+              {/* Background decoration */}
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-100/10 via-transparent to-emerald-100/10 pointer-events-none"></div>
+              
+              {/* Header */}
+              <div className="relative flex items-center justify-between p-3 border-b border-gray-200/50">
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <div className="w-2.5 h-2.5 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full"></div>
+                    <div className="absolute inset-0 w-2.5 h-2.5 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full animate-ping opacity-30"></div>
                   </div>
-                  <p className="text-gray-500 text-xl font-medium mb-2">
-                    Drop functions here
-                  </p>
-                  <p className="text-gray-400">
-                    Create your test workflow by dragging functions from the left panel
-                  </p>
+                  <h3 className="text-lg font-semibold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">Execution Log</h3>
+                  <span className="text-sm text-gray-500 bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded-full border border-gray-200/50">
+                    {logs.length}
+                  </span>
                 </div>
-              ) : (
-                <div className="h-full overflow-y-auto">
-                  <div className="space-y-4">
-                    {workflowItems.map((item, index) => (
-                      <React.Fragment key={item.id}>
-                        {/* Insertion indicator */}
-                        {dragOverIndex === index && (
-                          <div className="h-1 bg-emerald-400 rounded-full mx-4 opacity-80 animate-pulse"></div>
-                        )}
-                        
-                        <div
-                          onDragOver={(e) => handleItemDragOver(e, index)}
-                          onDrop={(e) => handleItemDrop(e, index)}
-                          className="group bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 text-white p-6 rounded-2xl flex items-center justify-between shadow-xl transform transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl relative overflow-hidden"
-                        >
-                          <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-1000"></div>
-                          <div className="flex items-center gap-4 relative z-10">
-                            <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center font-bold text-lg border-2 border-white/30">
-                              {index + 1}
+                
+                <button
+                  onClick={clearLogs}
+                  className="px-2 py-1 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50/80 backdrop-blur-sm rounded-lg transition-all duration-200 hover:scale-105"
+                  title="Clear logs"
+                >
+                  Clear
+                </button>
+              </div>
+
+              {/* Log Content */}
+              <div className="h-[calc(100%-60px)] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent">
+                {logs.length === 0 ? (
+                  <div className="p-6 text-center text-gray-500 relative">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-100 via-cyan-100 to-emerald-100 rounded-xl flex items-center justify-center mx-auto mb-3 relative overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-200/20 via-cyan-200/20 to-emerald-200/20"></div>
+                      <svg className="w-6 h-6 text-gray-400 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <p className="text-sm font-medium text-gray-600">No logs yet</p>
+                    <p className="text-xs mt-1 text-gray-500">Run workflow to see details</p>
+                  </div>
+                ) : (
+                  <div className="p-3 space-y-2 relative">
+                    {logs.map((log) => (
+                      <div
+                        key={log.id}
+                        className="flex items-start gap-2 p-2 rounded-lg hover:bg-white/60 backdrop-blur-sm transition-all duration-200 border border-white/40"
+                      >
+                        <div className="flex-shrink-0 mt-0.5">
+                          {log.type === 'success' && (
+                            <div className="w-3 h-3 bg-green-100 rounded-full flex items-center justify-center">
+                              <svg className="w-2 h-2 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
                             </div>
-                            <span className="font-bold text-lg">{item.name}</span>
-                          </div>
-                          <button
-                            onClick={() => removeFromWorkflow(item.id)}
-                            className="w-8 h-8 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white font-bold transition-all duration-200 hover:scale-110 active:scale-95 relative z-10"
-                          >
-                            ×
-                          </button>
+                          )}
+                          {log.type === 'error' && (
+                            <div className="w-3 h-3 bg-red-100 rounded-full flex items-center justify-center">
+                              <svg className="w-2 h-2 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          )}
+                          {log.type === 'warning' && (
+                            <div className="w-3 h-3 bg-yellow-100 rounded-full flex items-center justify-center">
+                              <svg className="w-2 h-2 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          )}
+                          {log.type === 'info' && (
+                            <div className="w-3 h-3 bg-blue-100 rounded-full flex items-center justify-center">
+                              <svg className="w-2 h-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          )}
                         </div>
-                        
-                        {/* Insertion indicator at the end */}
-                        {dragOverIndex === workflowItems.length && index === workflowItems.length - 1 && (
-                          <div className="h-1 bg-emerald-400 rounded-full mx-4 opacity-80 animate-pulse"></div>
-                        )}
-                      </React.Fragment>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            {log.stepName && (
+                              <span className="text-xs font-medium text-gray-600 bg-gray-200/60 px-1.5 py-0.5 rounded">
+                                {log.stepName}
+                              </span>
+                            )}
+                            <span className="text-xs text-gray-400">
+                              {log.timestamp}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-700 leading-relaxed">
+                            {log.message}
+                          </p>
+                        </div>
+                      </div>
                     ))}
+                    <div ref={logEndRef} />
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Input Modal */}
-        {showInputModal && pendingFunction && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-3xl shadow-2xl border border-white/50 p-8 w-full max-w-md max-h-[90vh] overflow-y-auto">
-              <h3 className="text-2xl font-bold mb-6 text-gray-800 text-center">
-                Configure {pendingFunction.name}
-              </h3>
-              <p className="text-gray-600 text-center mb-8">{pendingFunction.description}</p>
-              
-              <div className="space-y-6">
-                {pendingFunction.inputs.map((input) => (
-                  <div key={input.name} className="space-y-2">
-                    <label className="block text-sm font-semibold text-gray-700">
-                      {input.name}
-                    </label>
-                    <input
-                      type="text"
-                      value={inputValues[input.name] || ''}
-                      onChange={(e) => handleInputChange(input.name, e.target.value)}
-                      placeholder={input.placeholder}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-400 focus:outline-none transition-colors"
-                    />
-                  </div>
-                ))}
-              </div>
+        {/* Modals */}
+        <InputConfigModal
+          isOpen={showInputModal}
+          onClose={handleInputCancel}
+          onConfirm={handleInputConfirm}
+          functionData={pendingFunction}
+        />
 
-              <div className="flex gap-4 mt-8">
-                <button
-                  onClick={cancelAddFunction}
-                  className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmAddFunction}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-semibold hover:from-emerald-600 hover:to-teal-700 transition-all transform hover:scale-105"
-                >
-                  Add Function
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <FunctionManagementModal
+          isOpen={showAddFunctionModal}
+          onClose={() => setShowAddFunctionModal(false)}
+          onSave={handleSaveFunction}
+          editingFunction={null}
+          mode="add"
+        />
 
-
-        {/* Add Function Modal */}
-        {showAddFunctionModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-3xl shadow-2xl border border-white/50 p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <h3 className="text-2xl font-bold mb-6 text-gray-800 text-center">
-                Add New Function
-              </h3>
-              
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Function Name *
-                    </label>
-                    <input
-                      type="text"
-                      value={functionFormData.name}
-                      onChange={(e) => setFunctionFormData(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="MyFunction"
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-400 focus:outline-none transition-colors"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Function ID *
-                    </label>
-                    <input
-                      type="text"
-                      value={functionFormData.id}
-                      onChange={(e) => setFunctionFormData(prev => ({ ...prev, id: e.target.value }))}
-                      placeholder="myfunction"
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-400 focus:outline-none transition-colors"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Description
-                  </label>
-                  <input
-                    type="text"
-                    value={functionFormData.description}
-                    onChange={(e) => setFunctionFormData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Function description"
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-400 focus:outline-none transition-colors"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Number of Input Fields
-                  </label>
-                  <input
-                    type="number"
-                    value={functionFormData.numberOfInputs}
-                    onChange={(e) => handleFunctionInputCountChange(parseInt(e.target.value) || 0)}
-                    min="0"
-                    max="20"
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-400 focus:outline-none transition-colors"
-                  />
-                </div>
-
-                {functionInputs.map((input, index) => (
-                  <div key={index} className="border-2 border-gray-100 rounded-xl p-4">
-                    <h4 className="font-semibold text-gray-700 mb-3">Input Field {index + 1}</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-600 mb-1">
-                          Field Name *
-                        </label>
-                        <input
-                          type="text"
-                          value={input.name}
-                          onChange={(e) => updateFunctionInput(index, 'name', e.target.value)}
-                          placeholder="Field name"
-                          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-emerald-400 focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-600 mb-1">
-                          Placeholder *
-                        </label>
-                        <input
-                          type="text"
-                          value={input.placeholder}
-                          onChange={(e) => updateFunctionInput(index, 'placeholder', e.target.value)}
-                          placeholder="Placeholder text"
-                          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-emerald-400 focus:outline-none"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex gap-4 mt-8">
-                <button
-                  onClick={() => setShowAddFunctionModal(false)}
-                  className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveFunction}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-semibold hover:from-emerald-600 hover:to-teal-700 transition-all transform hover:scale-105"
-                >
-                  Add Function
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Edit Function Modal */}
-        {showEditFunctionModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-3xl shadow-2xl border border-white/50 p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <h3 className="text-2xl font-bold mb-6 text-gray-800 text-center">
-                Edit Function
-              </h3>
-              
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Function Name *
-                    </label>
-                    <input
-                      type="text"
-                      value={functionFormData.name}
-                      onChange={(e) => setFunctionFormData(prev => ({ ...prev, name: e.target.value }))}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-400 focus:outline-none transition-colors"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Function ID *
-                    </label>
-                    <input
-                      type="text"
-                      value={functionFormData.id}
-                      disabled
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-100 text-gray-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Description
-                  </label>
-                  <input
-                    type="text"
-                    value={functionFormData.description}
-                    onChange={(e) => setFunctionFormData(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-400 focus:outline-none transition-colors"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Number of Input Fields
-                  </label>
-                  <input
-                    type="number"
-                    value={functionFormData.numberOfInputs}
-                    onChange={(e) => handleFunctionInputCountChange(parseInt(e.target.value) || 0)}
-                    min="0"
-                    max="20"
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-400 focus:outline-none transition-colors"
-                  />
-                </div>
-
-                {functionInputs.map((input, index) => (
-                  <div key={index} className="border-2 border-gray-100 rounded-xl p-4">
-                    <h4 className="font-semibold text-gray-700 mb-3">Input Field {index + 1}</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-600 mb-1">
-                          Field Name *
-                        </label>
-                        <input
-                          type="text"
-                          value={input.name}
-                          onChange={(e) => updateFunctionInput(index, 'name', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-emerald-400 focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-600 mb-1">
-                          Placeholder *
-                        </label>
-                        <input
-                          type="text"
-                          value={input.placeholder}
-                          onChange={(e) => updateFunctionInput(index, 'placeholder', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-emerald-400 focus:outline-none"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex gap-4 mt-8">
-                <button
-                  onClick={() => setShowEditFunctionModal(false)}
-                  className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveFunction}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all transform hover:scale-105"
-                >
-                  Update Function
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <FunctionManagementModal
+          isOpen={showEditFunctionModal}
+          onClose={() => setShowEditFunctionModal(false)}
+          onSave={handleSaveFunction}
+          editingFunction={editingFunction}
+          mode="edit"
+        />
       </div>
     </div>
   );

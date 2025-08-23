@@ -49,3 +49,6 @@ desktop.ini
 
 # temp files
 nul
+
+# Playwright MCP temporary files
+.playwright-mcp/
