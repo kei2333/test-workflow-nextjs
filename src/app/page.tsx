@@ -294,6 +294,19 @@ export default function Home() {
               </div>
             </div>
           </div>
+          
+          {/* Mainframe 导航按钮 */}
+          <div className="flex items-center gap-3">
+            <a
+              href="/mainframe"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 via-emerald-500 to-teal-600 hover:from-blue-600 hover:via-emerald-600 hover:to-teal-700 text-white rounded-xl font-medium transition-all duration-300 transform hover:scale-105 hover:shadow-lg"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+              </svg>
+              IBM Mainframe
+            </a>
+          </div>
         </div>
         
         <div className="flex gap-3 h-[calc(100vh-100px)]" role="main">
