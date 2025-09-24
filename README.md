@@ -1,8 +1,313 @@
-# 🔧 Test Workflow Generator
+# IBM Mainframe Test Workflow System / IBM大型机测试工作流系统
 
-> 🚀 A modern drag-and-drop test workflow builder with dynamic function management
+A modern web-based system for creating drag-and-drop test workflows and connecting to IBM mainframes via s3270 terminal emulation.
 
-## 🆕 Latest Updates - Function Management System
+一个现代化的基于Web的系统，用于创建拖放式测试工作流并通过s3270终端仿真连接IBM大型机。
+
+## 🌟 Features / 功能特性
+
+### Test Workflow Builder / 测试工作流构建器
+- **Drag & Drop Interface**: Create test workflows by dragging functions from left panel to canvas
+- **Visual Workflow Design**: Build complex test processes with an intuitive interface
+- **Function Execution**: Execute workflows with real-time progress tracking
+- **拖放界面**: 从左侧面板拖拽功能到画布创建测试工作流
+- **可视化工作流设计**: 用直观的界面构建复杂的测试流程
+- **功能执行**: 实时进度跟踪执行工作流
+
+### IBM Mainframe Integration / IBM大型机集成
+- **s3270 Terminal Emulation**: Native IBM 3270 terminal emulator integration
+- **Real Mainframe Connection**: Connect to actual IBM mainframe systems
+- **Interactive Commands**: Full command execution with screen updates
+- **Session Management**: Multiple concurrent mainframe sessions
+- **s3270终端仿真**: 原生IBM 3270终端仿真器集成
+- **真实大型机连接**: 连接到实际的IBM大型机系统
+- **交互式命令**: 完整的命令执行和屏幕更新
+- **会话管理**: 多个并发大型机会话
+
+## 🏗️ Architecture / 系统架构
+
+```
+Frontend (Next.js + React + TypeScript)
+    ↓ HTTP API
+Backend (Python Flask + s3270)
+    ↓ 3270 Protocol
+IBM Mainframe Systems
+```
+
+## 🚀 Quick Start / 快速开始
+
+### Prerequisites / 前置要求
+
+1. **Install s3270** / **安装s3270**
+   ```bash
+   # macOS
+   brew install s3270
+
+   # Ubuntu/Debian
+   sudo apt-get install x3270-tcl
+
+   # CentOS/RHEL
+   sudo yum install x3270-tcl
+   ```
+
+2. **Install Node.js 18+** / **安装Node.js 18+**
+   ```bash
+   # Check version / 检查版本
+   node --version
+   ```
+
+3. **Install Python 3.8+** / **安装Python 3.8+**
+   ```bash
+   # Check version / 检查版本
+   python3 --version
+   ```
+
+### Installation / 安装
+
+1. **Clone the repository** / **克隆仓库**
+   ```bash
+   git clone <repository-url>
+   cd test-workflow-nextjs
+   ```
+
+2. **Install frontend dependencies** / **安装前端依赖**
+   ```bash
+   npm install
+   ```
+
+3. **Setup Python backend** / **设置Python后端**
+   ```bash
+   # Create virtual environment / 创建虚拟环境
+   python3 -m venv .venv
+
+   # Activate virtual environment / 激活虚拟环境
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+   # Install Python dependencies / 安装Python依赖
+   cd backend
+   pip install flask flask-cors
+   ```
+
+### Running the Application / 运行应用
+
+You need to start both frontend and backend services:
+你需要同时启动前端和后端服务：
+
+1. **Start the backend server** / **启动后端服务器**
+   ```bash
+   # In terminal 1 / 在终端1中
+   cd backend
+   source ../.venv/bin/activate  # Activate virtual environment / 激活虚拟环境
+   python3 app.py
+   ```
+   Backend will run on `http://localhost:5001`
+   后端将运行在 `http://localhost:5001`
+
+2. **Start the frontend server** / **启动前端服务器**
+   ```bash
+   # In terminal 2 / 在终端2中
+   npm run dev
+   ```
+   Frontend will run on `http://localhost:3000`
+   前端将运行在 `http://localhost:3000`
+
+3. **Access the application** / **访问应用**
+   - Main workflow: `http://localhost:3000`
+   - Mainframe terminal: `http://localhost:3000/mainframe`
+
+## 🔧 How s3270 Mainframe Connection Works / s3270大型机连接原理
+
+### Real Mainframe Connection / 真实大型机连接
+
+The system uses `s3270` (IBM 3270 terminal emulator) to establish authentic connections to IBM mainframe systems:
+
+系统使用 `s3270`（IBM 3270终端仿真器）与IBM大型机系统建立真实连接：
+
+#### 1. Connection Process / 连接过程
+```python
+# backend/app.py - S3270Session.connect()
+s3270_cmd = [
+    's3270',
+    '-model', '3279-4',    # 3270 model 4 (43x80 screen)
+    '-script',             # Enable scripting mode
+    f'{host}:{port}'       # Connect to mainframe host:port
+]
+
+process = subprocess.Popen(
+    s3270_cmd,
+    stdin=subprocess.PIPE,   # Send commands
+    stdout=subprocess.PIPE,  # Receive responses
+    stderr=subprocess.PIPE,  # Error handling
+    text=True
+)
+```
+
+#### 2. Authentication / 身份验证
+```python
+# Send login credentials to mainframe
+self._execute_command('Clear')              # Clear screen
+self._execute_command(f'String("{username}")') # Type username
+self._execute_command('Tab')                # Move to password field
+self._execute_command(f'String("{password}")') # Type password
+self._execute_command('Enter')              # Submit login
+```
+
+#### 3. Command Execution / 命令执行
+```python
+def _send_command(self, command: str):
+    # Send command to s3270 process
+    self.process.stdin.write(f"{command}\n")
+    self.process.stdin.flush()
+
+    # Read response from mainframe
+    while True:
+        line = self.process.stdout.readline().strip()
+        if line.startswith("ok"):
+            break
+        elif line.startswith("error"):
+            # Handle error
+            break
+```
+
+#### 4. Screen Content Retrieval / 屏幕内容获取
+```python
+def get_screen_text(self):
+    # Get current screen content from mainframe
+    screen_content = self._execute_command('Ascii')
+    return screen_content
+```
+
+### Test Mode / 测试模式
+
+For development and testing, the system provides a localhost test mode:
+对于开发和测试，系统提供了localhost测试模式：
+
+- **Host**: `localhost:3270`
+- **Simulated Environment**: Full IBM 3270 terminal simulation
+- **Interactive Commands**: HELP, STATUS, CLEAR, ISPF, TIME, ECHO, EXIT
+- **主机**: `localhost:3270`
+- **模拟环境**: 完整的IBM 3270终端模拟
+- **交互命令**: HELP, STATUS, CLEAR, ISPF, TIME, ECHO, EXIT
+
+## 📁 Project Structure / 项目结构
+
+```
+test-workflow-nextjs/
+├── src/
+│   ├── app/
+│   │   ├── page.tsx              # Main workflow builder / 主工作流构建器
+│   │   └── mainframe/
+│   │       └── page.tsx          # Mainframe terminal page / 大型机终端页面
+│   ├── components/
+│   │   ├── WorkflowBuilder.tsx   # Drag-and-drop workflow interface
+│   │   ├── MainframeLogin.tsx    # Mainframe connection component
+│   │   └── ...
+│   ├── services/
+│   │   ├── functionExecutor.ts   # Workflow execution logic
+│   │   └── mainframeApi.ts       # Mainframe API client
+│   ├── hooks/
+│   │   └── useMainframe.ts       # Mainframe connection hook
+│   └── types/
+│       ├── workflow.ts           # Workflow type definitions
+│       └── mainframe.ts          # Mainframe type definitions
+├── backend/
+│   └── app.py                    # Python Flask API server
+└── README.md                     # This file / 本文件
+```
+
+## 🔌 API Endpoints / API端点
+
+### Backend API / 后端API
+- `GET /api/health` - Health check / 健康检查
+- `POST /api/connect` - Connect to mainframe / 连接大型机
+- `POST /api/login` - Login to mainframe / 登录大型机
+- `GET /api/screen?session_id=<id>` - Get screen content / 获取屏幕内容
+- `POST /api/command` - Send command / 发送命令
+- `POST /api/disconnect` - Disconnect / 断开连接
+- `GET /api/sessions` - List active sessions / 列出活动会话
+
+## 🎯 Available Workflow Functions / 可用工作流功能
+
+1. **logonispf** - Login to ISPF / 登录ISPF
+2. **editjcl** - Edit JCL files / 编辑JCL文件
+3. **execjcl** - Execute JCL jobs / 执行JCL作业
+4. **executioncheck** - Check job execution / 检查作业执行
+5. **getjoblog** - Retrieve job logs / 获取作业日志
+6. **filecomp1** - File comparison / 文件比较
+7. **filecomp2** - Conditional file comparison / 条件文件比较
+8. **createfile** - Create files / 创建文件
+9. **sendfile** - Send files to mainframe / 发送文件到大型机
+10. **getfile** - Get files from mainframe / 从大型机获取文件
+11. **fileconv** - File format conversion / 文件格式转换
+12. **gotoispfmainscreen** - Return to ISPF main / 返回ISPF主屏幕
+13. **filereccount** - Get file record count / 获取文件记录数
+
+## 🔧 Configuration / 配置
+
+### Environment Variables / 环境变量
+```bash
+# Backend configuration / 后端配置
+FLASK_PORT=5001
+FLASK_DEBUG=True
+
+# Frontend configuration / 前端配置
+NEXT_PUBLIC_API_URL=http://localhost:5001
+```
+
+### Mainframe Connection Settings / 大型机连接设置
+- **Default Port**: 23 (Telnet) or 3270 (for test mode)
+- **Models Supported**: IBM-3279-4-E (43x80 display)
+- **Protocols**: TN3270, TN3270E
+- **默认端口**: 23 (Telnet) 或 3270 (测试模式)
+- **支持型号**: IBM-3279-4-E (43x80显示)
+- **协议**: TN3270, TN3270E
+
+## 🛠️ Development / 开发
+
+### Adding New Workflow Functions / 添加新的工作流功能
+1. Define function in `src/data/functions.ts`
+2. Implement logic in `src/services/functionExecutor.ts`
+3. Update type definitions in `src/types/workflow.ts`
+
+### Extending Mainframe Integration / 扩展大型机集成
+1. Add new commands in `backend/app.py`
+2. Update API client in `src/services/mainframeApi.ts`
+3. Enhance UI components in `src/components/MainframeLogin.tsx`
+
+## 📝 Testing / 测试
+
+### Test Mode Usage / 测试模式使用
+1. Start the application / 启动应用
+2. Navigate to mainframe page / 导航到大型机页面
+3. Use `localhost` as host and `3270` as port
+4. Login with any username/password (e.g., `testuser`/`testpass`)
+5. Try interactive commands: `HELP`, `STATUS`, `ISPF`, etc.
+
+## 🤝 Contributing / 贡献
+
+1. Fork the repository / 分叉仓库
+2. Create feature branch / 创建功能分支
+3. Make changes / 进行更改
+4. Test thoroughly / 彻底测试
+5. Submit pull request / 提交拉取请求
+
+## 📄 License / 许可证
+
+This project is for educational and testing purposes.
+本项目用于教育和测试目的。
+
+## 🆘 Support / 支持
+
+For issues and questions:
+如有问题和疑问：
+- Check the console logs / 检查控制台日志
+- Verify s3270 installation / 验证s3270安装
+- Ensure both services are running / 确保两个服务都在运行
+- Test with localhost:3270 first / 首先用localhost:3270测试
+
+---
+
+## 🆕 Previous Updates - Function Management System
 
 ### 🎯 **New Features Added**
 
