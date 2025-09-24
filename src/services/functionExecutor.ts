@@ -1,5 +1,6 @@
 import { WorkflowItem } from '@/types/workflow';
 import { sanitizeInput } from '@/utils/validation';
+import { mainframeApi } from '@/services/mainframeApi';
 
 export interface ExecutionResult {
   success: boolean;
@@ -48,7 +49,7 @@ export class FunctionExecutor {
         // Simulate execution delay
         await new Promise(resolve => setTimeout(resolve, this.STEP_DELAY));
         
-        const message = this.executeFunction(item.functionId, item.name, item.inputs);
+        const message = await this.executeFunction(item.functionId, item.name, item.inputs);
         const executionTime = Date.now() - startTime;
 
         const result: ExecutionResult = {
@@ -93,11 +94,11 @@ export class FunctionExecutor {
     return results;
   }
 
-  private static executeFunction(
-    functionId: string, 
-    functionName: string, 
+  private static async executeFunction(
+    functionId: string,
+    functionName: string,
     inputs: Record<string, string>
-  ): string {
+  ): Promise<string> {
     // Sanitize all inputs
     const sanitizedInputs: Record<string, string> = {};
     Object.keys(inputs).forEach(key => {
@@ -107,7 +108,33 @@ export class FunctionExecutor {
     // Execute based on function ID
     switch (functionId) {
       case 'logonispf':
-        return `${functionName}: Successfully connected to mainframe with credentials. User ${sanitizedInputs['User Name'] || 'XYZ'} logged in successfully.`;
+        try {
+          // First connect to mainframe using s3270
+          const connectResponse = await mainframeApi.connect({
+            host: 'localhost',  // Use localhost for testing
+            port: 3270
+          });
+
+          if (connectResponse.success && connectResponse.session_id) {
+            // Then login with provided credentials
+            const loginResponse = await mainframeApi.login({
+              session_id: connectResponse.session_id,
+              username: sanitizedInputs['User Name'] || 'testuser',
+              password: sanitizedInputs['Password'] || 'testpass'
+            });
+
+            if (loginResponse.success) {
+              return `${functionName}: Successfully connected and logged into mainframe using s3270. User ${sanitizedInputs['User Name'] || 'testuser'} authenticated. Session ID: ${connectResponse.session_id.substring(0, 8)}...`;
+            } else {
+              return `${functionName}: Connection successful but login failed: ${loginResponse.message}`;
+            }
+          } else {
+            return `${functionName}: Failed to connect to mainframe: ${connectResponse.message}`;
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          return `${functionName}: Error during mainframe connection/login: ${errorMessage}`;
+        }
       
       case 'editjcl':
         return `${functionName}: JCL file '${sanitizedInputs['JCL Name'] || 'JCL1'}' edited successfully. Found '${sanitizedInputs['String to be found1- Find string1'] || 'abc1(&date)'}' and replaced with '${sanitizedInputs['String to be replaced1- replace string1'] || 'xyz1(250806)'}'.`;
