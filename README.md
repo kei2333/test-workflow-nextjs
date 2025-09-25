@@ -4,25 +4,62 @@ A modern web-based system for creating drag-and-drop test workflows and connecti
 
 一个现代化的基于Web的系统，用于创建拖放式测试工作流并通过s3270终端仿真连接IBM大型机。
 
+## 🎉 **Latest Release - Real Mainframe Integration**
+
+### ✅ **What's New (Latest Update)**
+- 🔗 **Live Mainframe Connection**: Successfully tested connection to pub400.com (IBM i AS/400 system)
+- 🖥️ **Seamless Navigation**: Added "Mainframe Terminal" button in homepage header for quick access
+- ⚡ **Real-time Terminal**: Full interactive s3270 terminal with live screen updates
+- 🔄 **Integrated Workflow**: LogonISPF and other functions now execute on real mainframe systems
+- 📱 **Responsive Design**: Beautiful gradient UI with hover effects and animations
+
+### 🎯 **Demo Flow**
+1. Visit `http://localhost:3000` - Main workflow builder interface
+2. Click "**Mainframe Terminal**" button in top-right corner
+3. Connect to `pub400.com:23` with credentials `pub400/pub400`
+4. Experience real IBM mainframe interaction via s3270
+
+### 💡 **Technical Achievement**
+- **Frontend**: Next.js 15 + React 19 + TypeScript
+- **Backend**: Python Flask + s3270 native integration
+- **Connection**: Direct telnet to pub400.com IBM i system
+- **UI/UX**: Glass-morphism design with smooth transitions
+
 ## 🌟 Features / 功能特性
+
+### 🚀 **Latest Updates - Real Mainframe Connectivity**
+- **🔗 Live Mainframe Connection**: Successfully connects to real IBM mainframe systems (pub400.com)
+- **🖥️ Dual Interface**: Seamless navigation between workflow builder and mainframe terminal
+- **⚡ Quick Access Button**: One-click navigation to mainframe terminal from homepage
+- **🔄 Real-time Integration**: Workflow functions execute on actual mainframe systems
+- **🔗 实时大型机连接**: 成功连接真实的IBM大型机系统 (pub400.com)
+- **🖥️ 双界面系统**: 工作流构建器和大型机终端之间的无缝导航
+- **⚡ 快速访问按钮**: 从主页一键导航到大型机终端
+- **🔄 实时集成**: 工作流功能在真实大型机系统上执行
 
 ### Test Workflow Builder / 测试工作流构建器
 - **Drag & Drop Interface**: Create test workflows by dragging functions from left panel to canvas
 - **Visual Workflow Design**: Build complex test processes with an intuitive interface
 - **Function Execution**: Execute workflows with real-time progress tracking
+- **Real Mainframe Execution**: Workflows execute on actual IBM systems via s3270
 - **拖放界面**: 从左侧面板拖拽功能到画布创建测试工作流
 - **可视化工作流设计**: 用直观的界面构建复杂的测试流程
 - **功能执行**: 实时进度跟踪执行工作流
+- **真实大型机执行**: 工作流在真实IBM系统上通过s3270执行
 
 ### IBM Mainframe Integration / IBM大型机集成
 - **s3270 Terminal Emulation**: Native IBM 3270 terminal emulator integration
-- **Real Mainframe Connection**: Connect to actual IBM mainframe systems
-- **Interactive Commands**: Full command execution with screen updates
+- **Real Mainframe Connection**: Connect to actual IBM mainframe systems (pub400.com)
+- **Interactive Terminal**: Full-screen terminal interface with real-time updates
+- **Authentication Support**: Secure login with username/password validation
 - **Session Management**: Multiple concurrent mainframe sessions
+- **Command Execution**: Send commands and receive real mainframe responses
 - **s3270终端仿真**: 原生IBM 3270终端仿真器集成
-- **真实大型机连接**: 连接到实际的IBM大型机系统
-- **交互式命令**: 完整的命令执行和屏幕更新
+- **真实大型机连接**: 连接到实际的IBM大型机系统 (pub400.com)
+- **交互式终端**: 带实时更新的全屏终端界面
+- **身份验证支持**: 用户名/密码验证的安全登录
 - **会话管理**: 多个并发大型机会话
+- **命令执行**: 发送命令并接收真实大型机响应
 
 ## 🏗️ Architecture / 系统架构
 
@@ -112,8 +149,9 @@ You need to start both frontend and backend services:
    前端将运行在 `http://localhost:3000`
 
 3. **Access the application** / **访问应用**
-   - Main workflow: `http://localhost:3000`
-   - Mainframe terminal: `http://localhost:3000/mainframe`
+   - **Main workflow**: `http://localhost:3000` - Drag & drop workflow builder
+   - **Mainframe terminal**: `http://localhost:3000/mainframe` - Direct s3270 terminal access
+   - **Quick navigation**: Use the "Mainframe Terminal" button in top-right corner of homepage
 
 ## 🔧 How s3270 Mainframe Connection Works / s3270大型机连接原理
 
@@ -255,12 +293,18 @@ NEXT_PUBLIC_API_URL=http://localhost:5001
 ```
 
 ### Mainframe Connection Settings / 大型机连接设置
-- **Default Port**: 23 (Telnet) or 3270 (for test mode)
+- **Default Host**: `pub400.com` (IBM i AS/400 system)
+- **Default Port**: 23 (Telnet)
+- **Default Credentials**: `pub400/pub400`
 - **Models Supported**: IBM-3279-4-E (43x80 display)
 - **Protocols**: TN3270, TN3270E
-- **默认端口**: 23 (Telnet) 或 3270 (测试模式)
+- **Terminal Type**: 5250 (AS/400) via s3270 emulation
+- **默认主机**: `pub400.com` (IBM i AS/400系统)
+- **默认端口**: 23 (Telnet)
+- **默认凭据**: `pub400/pub400`
 - **支持型号**: IBM-3279-4-E (43x80显示)
 - **协议**: TN3270, TN3270E
+- **终端类型**: 通过s3270仿真的5250 (AS/400)
 
 ## 🛠️ Development / 开发
 
