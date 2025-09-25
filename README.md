@@ -85,6 +85,11 @@ IBM Mainframe Systems
 
    # CentOS/RHEL
    sudo yum install x3270-tcl
+
+   # Windows
+   # Download from: http://x3270.bgp.nu/download.html
+   # Or use WSL with Ubuntu commands above
+   # Or install via chocolatey: choco install x3270
    ```
 
 2. **Install Node.js 18+** / **安装Node.js 18+**
@@ -118,7 +123,14 @@ IBM Mainframe Systems
    python3 -m venv .venv
 
    # Activate virtual environment / 激活虚拟环境
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   # Linux/macOS:
+   source .venv/bin/activate
+
+   # Windows Command Prompt:
+   .venv\Scripts\activate.bat
+
+   # Windows PowerShell:
+   .venv\Scripts\Activate.ps1
 
    # Install Python dependencies / 安装Python依赖
    cd backend
@@ -134,8 +146,23 @@ You need to start both frontend and backend services:
    ```bash
    # In terminal 1 / 在终端1中
    cd backend
-   source ../.venv/bin/activate  # Activate virtual environment / 激活虚拟环境
+
+   # Activate virtual environment / 激活虚拟环境
+   # Linux/macOS:
+   source ../.venv/bin/activate
+
+   # Windows Command Prompt:
+   ../.venv/Scripts/activate.bat
+
+   # Windows PowerShell:
+   ../.venv/Scripts/Activate.ps1
+
+   # Start server / 启动服务器
+   # Linux/macOS:
    python3 app.py
+
+   # Windows:
+   python app.py
    ```
    Backend will run on `http://localhost:5001`
    后端将运行在 `http://localhost:5001`

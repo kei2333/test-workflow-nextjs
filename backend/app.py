@@ -17,7 +17,7 @@ import threading
 import queue
 
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002"]}})
+CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://192.168.2.109:3000"]}})
 
 # Global sessions storage
 sessions = {}
@@ -413,4 +413,4 @@ if __name__ == '__main__':
     print("Starting IBM Mainframe API Server with s3270...")
     print(f"s3270 path: {'/opt/homebrew/bin/s3270' if os.path.exists('/opt/homebrew/bin/s3270') else '/usr/bin/s3270'}")
 
-    app.run(host='localhost', port=5001, debug=True)
+    app.run(host='0.0.0.0', port=5001, debug=True)

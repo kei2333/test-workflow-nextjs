@@ -3,7 +3,18 @@
  * Provides interface to s3270-based IBM mainframe backend
  */
 
-const BASE_URL = 'http://localhost:5001/api';
+// Get the current host dynamically for network access
+const getBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    // Client-side: use current window host but with backend port
+    const hostname = window.location.hostname;
+    return `http://${hostname}:5001/api`;
+  }
+  // Server-side fallback
+  return 'http://localhost:5001/api';
+};
+
+const BASE_URL = getBaseUrl();
 
 export interface ConnectionRequest {
   host: string;
