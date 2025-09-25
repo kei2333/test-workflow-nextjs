@@ -14,10 +14,11 @@ A modern web-based system for creating drag-and-drop test workflows and connecti
 - 📱 **Responsive Design**: Beautiful gradient UI with hover effects and animations
 
 ### 🎯 **Demo Flow**
-1. Visit `http://localhost:3000` - Main workflow builder interface
+1. Visit `http://localhost:3000` (or network IP for WiFi access) - Main workflow builder interface
 2. Click "**Mainframe Terminal**" button in top-right corner
 3. Connect to `pub400.com:23` with credentials `pub400/pub400`
 4. Experience real IBM mainframe interaction via s3270
+5. **Network Access**: Available at `http://[your-ip]:3000` for other devices on same WiFi
 
 ### 💡 **Technical Achievement**
 - **Frontend**: Next.js 15 + React 19 + TypeScript
@@ -242,17 +243,19 @@ def get_screen_text(self):
     return screen_content
 ```
 
-### Test Mode / 测试模式
+### Real Mainframe Connection / 真实大型机连接
 
-For development and testing, the system provides a localhost test mode:
-对于开发和测试，系统提供了localhost测试模式：
+The system connects directly to real IBM mainframe systems:
+系统直接连接到真实的IBM大型机系统：
 
-- **Host**: `localhost:3270`
-- **Simulated Environment**: Full IBM 3270 terminal simulation
-- **Interactive Commands**: HELP, STATUS, CLEAR, ISPF, TIME, ECHO, EXIT
-- **主机**: `localhost:3270`
-- **模拟环境**: 完整的IBM 3270终端模拟
-- **交互命令**: HELP, STATUS, CLEAR, ISPF, TIME, ECHO, EXIT
+- **Default Host**: `pub400.com:23` (IBM i AS/400 system)
+- **Credentials**: `pub400/pub400` (public access)
+- **Protocol**: TN3270 via s3270 terminal emulator
+- **Live Connection**: Real-time interaction with actual mainframe
+- **默认主机**: `pub400.com:23` (IBM i AS/400 系统)
+- **凭据**: `pub400/pub400` (公共访问)
+- **协议**: 通过s3270终端模拟器的TN3270
+- **实时连接**: 与真实大型机的实时交互
 
 ## 📁 Project Structure / 项目结构
 
@@ -347,12 +350,13 @@ NEXT_PUBLIC_API_URL=http://localhost:5001
 
 ## 📝 Testing / 测试
 
-### Test Mode Usage / 测试模式使用
+### Real Mainframe Usage / 真实大型机使用
 1. Start the application / 启动应用
 2. Navigate to mainframe page / 导航到大型机页面
-3. Use `localhost` as host and `3270` as port
-4. Login with any username/password (e.g., `testuser`/`testpass`)
-5. Try interactive commands: `HELP`, `STATUS`, `ISPF`, etc.
+3. Use `pub400.com` as host and `23` as port (pre-configured)
+4. Login with `pub400/pub400` credentials (pre-filled)
+5. Experience real IBM mainframe commands and screens
+6. All workflow functions execute on the actual mainframe system
 
 ## 🤝 Contributing / 贡献
 
@@ -595,7 +599,7 @@ const runWorkflow = async () => {
   for (let i = 0; i < workflowItems.length; i++) {
     const currentItem = workflowItems[i];
     
-    // ⏱️ Simulate function execution time (1 second delay)
+    // ⏱️ Add execution delay for better user experience
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     // 📢 Show execution feedback with specific function name
