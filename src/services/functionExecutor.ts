@@ -111,8 +111,8 @@ export class FunctionExecutor {
         try {
           // First connect to mainframe using s3270
           const connectResponse = await mainframeApi.connect({
-            host: 'localhost',  // Use localhost for testing
-            port: 3270
+            host: 'pub400.com',  // Use pub400.com for real mainframe testing
+            port: 23  // Standard telnet port for pub400
           });
 
           if (connectResponse.success && connectResponse.session_id) {

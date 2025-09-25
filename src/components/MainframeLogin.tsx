@@ -26,13 +26,13 @@ export const MainframeLogin: React.FC<MainframeLoginProps> = ({
 
   // Local state
   const [connectionForm, setConnectionForm] = useState({
-    host: 'localhost',
-    port: 3270,
+    host: 'pub400.com',
+    port: 23,
   });
 
   const [loginForm, setLoginForm] = useState({
-    username: 'testuser',
-    password: 'testpass',
+    username: 'pub400',
+    password: 'pub400',
   });
 
   const [commandInput, setCommandInput] = useState('');
@@ -91,7 +91,7 @@ export const MainframeLogin: React.FC<MainframeLoginProps> = ({
   // Handle disconnect
   const handleDisconnect = useCallback(async () => {
     await disconnect();
-    setLoginForm({ username: 'testuser', password: 'testpass' });
+    setLoginForm({ username: 'pub400', password: 'pub400' });
     setCommandInput('');
   }, [disconnect]);
 

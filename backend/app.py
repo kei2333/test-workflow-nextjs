@@ -39,21 +39,13 @@ class S3270Session:
     def connect(self, host: str, port: int = 23) -> Tuple[bool, str]:
         """Connect to mainframe using s3270"""
         try:
-            # Special test mode - just start s3270 in script mode without connecting
-            if host.lower() == "localhost" and port == 3270:
-                s3270_cmd = [
-                    's3270',
-                    '-model', '3279-4',  # 3270 model 4 (43x80)
-                    '-script'            # Enable scripting mode without connection
-                ]
-            else:
-                # Regular connection mode
-                s3270_cmd = [
-                    's3270',
-                    '-model', '3279-4',  # 3270 model 4 (43x80)
-                    '-script',           # Enable scripting mode
-                    f'{host}:{port}'
-                ]
+            # Connect to real mainframe
+            s3270_cmd = [
+                's3270',
+                '-model', '3279-4',  # 3270 model 4 (43x80)
+                '-script',           # Enable scripting mode
+                f'{host}:{port}'
+            ]
 
             self.process = subprocess.Popen(
                 s3270_cmd,
@@ -132,31 +124,6 @@ class S3270Session:
     def get_screen_text(self) -> str:
         """Get current screen content as text"""
         screen_content = self._execute_command('Ascii')
-
-        # In test mode (localhost:3270), provide more meaningful content
-        if self.host == "localhost" and self.port == 3270:
-            if not screen_content.strip() or screen_content.count('\n') > 20:
-                return f"""
-***** s3270 Test Mode *****
-
-IBM 3270 Terminal Emulator
-Test Environment
-
-Session Information:
-- Host: {self.host}:{self.port}
-- Model: IBM-3279-4-E
-- Connected: {'Yes' if self.is_connected else 'No'}
-- Logged In: {'Yes' if self.is_logged_in else 'No'}
-
-Test commands you can try:
-- Type 'HELP' for test mode help
-- Type 'STATUS' for session status
-- Type 'CLEAR' to clear screen
-- Type 'EXIT' to disconnect
-
-Ready for input...
-"""
-
         return screen_content
 
     def login(self, username: str, password: str) -> Dict:
@@ -231,10 +198,6 @@ Ready for input...
             # Store the command for reference
             self.last_command = command
 
-            # In test mode, provide interactive responses
-            if self.host == "localhost" and self.port == 3270:
-                return self._handle_test_command(command)
-
             # Send the command as a string
             self._execute_command(f'String("{command}")')
             time.sleep(0.5)
@@ -256,112 +219,6 @@ Ready for input...
         except Exception as e:
             return {"success": False, "message": f"Command error: {str(e)}"}
 
-    def _handle_test_command(self, command: str) -> Dict:
-        """Handle commands in test mode with simulated responses"""
-        cmd = command.strip().upper()
-
-        if cmd == "HELP":
-            response = f"""
-***** s3270 Test Mode - Help *****
-
-Available Test Commands:
-- HELP     : Show this help message
-- STATUS   : Display session status
-- CLEAR    : Clear the screen
-- EXIT     : Disconnect from session
-- ISPF     : Simulate ISPF startup
-- LOGOFF   : Simulate logoff
-- TIME     : Show current time
-- ECHO <text> : Echo back text
-
-IBM 3270 Terminal Emulator Test Environment
-Session: {self.session_id[:8]}...
-Ready for next command.
-"""
-        elif cmd == "STATUS":
-            response = f"""
-***** Session Status *****
-
-Host: {self.host}:{self.port}
-Model: IBM-3279-4-E
-Connected: Yes
-Logged In: {'Yes' if self.is_logged_in else 'No'}
-Session ID: {self.session_id[:8]}...
-Last Command: {self.last_command}
-Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-
-Ready for next command.
-"""
-        elif cmd == "CLEAR":
-            response = """
-
-
-***** Screen Cleared *****
-
-IBM 3270 Terminal Emulator
-Test Environment
-
-Ready for input...
-"""
-        elif cmd == "ISPF":
-            response = """
-***** ISPF Primary Option Menu *****
-
- 0  Settings          Terminal and user parameters
- 1  View              Display source data or listings
- 2  Edit              Create or change source data
- 3  Utilities         Perform utility functions
- 4  Foreground        Interactive language processing
- 5  Batch             Submit job for language processing
- 6  Command           Enter TSO or Workstation commands
- 10 SDSF              System Display and Search Facility
- 11 Workplace         ISPF Object/Action Workplace
-
- Enter X to terminate using log/list defaults
-
-Option ===> _
-"""
-        elif cmd == "TIME":
-            response = f"""
-Current Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-Session Duration: Active
-Test Mode: Enabled
-
-Ready for next command.
-"""
-        elif cmd.startswith("ECHO "):
-            echo_text = command[5:].strip()
-            response = f"""
-Echo Response: {echo_text}
-
-Ready for next command.
-"""
-        elif cmd in ["EXIT", "LOGOFF"]:
-            response = """
-***** Disconnecting *****
-
-Thank you for using s3270 Test Mode
-Session terminated.
-"""
-        else:
-            response = f"""
-***** Command Executed *****
-
-Command: {command}
-Result: Simulated execution in test mode
-
-Available commands: HELP, STATUS, CLEAR, ISPF, TIME, ECHO, EXIT
-Type HELP for more information.
-
-Ready for next command.
-"""
-
-        return {
-            "success": True,
-            "message": "Test command executed successfully",
-            "command": command,
-            "screen_content": response
-        }
 
     def send_function_key(self, key: str) -> Dict:
         """Send function key (PF1-PF24, Enter, Clear, etc.)"""
