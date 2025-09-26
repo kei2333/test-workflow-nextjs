@@ -39,13 +39,25 @@ class S3270Session:
     def connect(self, host: str, port: int = 23) -> Tuple[bool, str]:
         """Connect to mainframe using s3270"""
         try:
-            # Connect to real mainframe
-            s3270_cmd = [
-                's3270',
-                '-model', '3279-4',  # 3270 model 4 (43x80)
-                '-script',           # Enable scripting mode
-                f'{host}:{port}'
-            ]
+            # Configure s3270 parameters based on target system
+            if host == 'localhost' and port == 3270:
+                # TK5/Hercules specific configuration
+                s3270_cmd = [
+                    's3270',
+                    '-model', '3278-2',   # Use older 3278 model for TK5
+                    '-script',            # Enable scripting mode
+                    '-connecttimeout', '30',  # Longer timeout for TK5
+                    '-codepage', 'cp037', # Use EBCDIC code page
+                    f'{host}:{port}'
+                ]
+            else:
+                # Standard configuration for modern systems like pub400
+                s3270_cmd = [
+                    's3270',
+                    '-model', '3279-4',  # 3270 model 4 (43x80)
+                    '-script',           # Enable scripting mode
+                    f'{host}:{port}'
+                ]
 
             self.process = subprocess.Popen(
                 s3270_cmd,
@@ -65,8 +77,9 @@ class S3270Session:
                 self.port = port
                 self.is_connected = True
 
-                # Get initial screen content
-                initial_screen = self._execute_command('Ascii')
+                # Get initial screen content with longer timeout for TK5
+                timeout = 30 if host == 'localhost' and port == 3270 else 10
+                initial_screen = self._execute_command('Ascii', timeout)
 
                 return True, f"Successfully connected to {host}:{port} using s3270"
             else:
@@ -76,21 +89,33 @@ class S3270Session:
         except Exception as e:
             return False, f"Connection error: {str(e)}"
 
-    def _send_command(self, command: str) -> Dict[str, str]:
+    def _send_command(self, command: str, timeout: int = 10) -> Dict[str, str]:
         """Send command to s3270 process and get response"""
         if not self.process or self.process.poll() is not None:
             return {"status": "error", "data": "Connection lost"}
 
         try:
+            import select
+
             # Send command to s3270
             self.process.stdin.write(f"{command}\n")
             self.process.stdin.flush()
 
-            # Read response lines
+            # Read response lines with timeout
             response_lines = []
             status = "ok"
+            start_time = time.time()
 
             while True:
+                # Check for timeout
+                if time.time() - start_time > timeout:
+                    return {"status": "error", "data": f"Command timeout after {timeout}s"}
+
+                # Use select to check if data is available (non-blocking)
+                ready, _, _ = select.select([self.process.stdout], [], [], 0.1)
+                if not ready:
+                    continue
+
                 line = self.process.stdout.readline().strip()
                 if not line:
                     continue
@@ -114,9 +139,9 @@ class S3270Session:
         except Exception as e:
             return {"status": "error", "data": f"Command error: {str(e)}"}
 
-    def _execute_command(self, command: str) -> str:
+    def _execute_command(self, command: str, timeout: int = 10) -> str:
         """Execute a command and return just the data"""
-        result = self._send_command(command)
+        result = self._send_command(command, timeout)
         if result["status"] == "error":
             return f"Error: {result['data']}"
         return result["data"]
@@ -133,34 +158,60 @@ class S3270Session:
 
         try:
             # Get current screen to see login prompt
-            screen = self.get_screen_text()
+            initial_screen = self.get_screen_text()
+            print(f"DEBUG: Initial screen content:\n{initial_screen}")
 
-            # Clear any existing input and enter username
-            self._execute_command('Clear')
-            time.sleep(0.5)
+            # TK5 specific login handling
+            if self.host == 'localhost' and self.port == 3270:
+                # For TK5, try different approach - it might need different login sequence
+                # Type username directly without clearing first
+                self._execute_command(f'String("{username}")')
+                time.sleep(1)
 
-            # Type username
-            self._execute_command(f'String("{username}")')
-            time.sleep(0.5)
+                # Press Enter to submit username
+                self._execute_command('Enter')
+                time.sleep(2)
 
-            # Press Tab or Enter to move to password field
-            self._execute_command('Tab')
-            time.sleep(0.5)
+                # Get intermediate screen
+                intermediate_screen = self.get_screen_text()
+                print(f"DEBUG: After username screen:\n{intermediate_screen}")
 
-            # Type password
-            self._execute_command(f'String("{password}")')
-            time.sleep(0.5)
+                # Type password
+                self._execute_command(f'String("{password}")')
+                time.sleep(1)
 
-            # Press Enter to submit login
-            self._execute_command('Enter')
-            time.sleep(2)
+                # Press Enter to submit password
+                self._execute_command('Enter')
+                time.sleep(3)
+            else:
+                # Standard login for other systems (like pub400)
+                # Clear any existing input and enter username
+                self._execute_command('Clear')
+                time.sleep(0.5)
+
+                # Type username
+                self._execute_command(f'String("{username}")')
+                time.sleep(0.5)
+
+                # Press Tab or Enter to move to password field
+                self._execute_command('Tab')
+                time.sleep(0.5)
+
+                # Type password
+                self._execute_command(f'String("{password}")')
+                time.sleep(0.5)
+
+                # Press Enter to submit login
+                self._execute_command('Enter')
+                time.sleep(2)
 
             # Get screen after login attempt
             login_result_screen = self.get_screen_text()
+            print(f"DEBUG: Final login screen:\n{login_result_screen}")
 
             # Check for common success indicators in screen content
-            success_indicators = ['READY', 'ISPF', 'MAIN MENU', 'TSO', 'LOGON']
-            error_indicators = ['INVALID', 'ERROR', 'FAILED', 'INCORRECT']
+            success_indicators = ['READY', 'ISPF', 'MAIN MENU', 'TSO', 'LOGON', 'COMMAND', 'HERCULES']
+            error_indicators = ['INVALID', 'ERROR', 'FAILED', 'INCORRECT', 'NOT AUTHORIZED']
 
             login_screen_upper = login_result_screen.upper()
 

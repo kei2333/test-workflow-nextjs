@@ -17,6 +17,39 @@ export interface ExecutionProgress {
   results: ExecutionResult[];
 }
 
+// System configuration type
+type SystemConfig = {
+  host: string;
+  port: number;
+  defaultUsername: string;
+  defaultPassword: string;
+};
+
+// Available systems
+const SYSTEMS: Record<string, SystemConfig> = {
+  pub400: {
+    host: 'pub400.com',
+    port: 23,
+    defaultUsername: 'pub400',
+    defaultPassword: 'pub400',
+  },
+  tk5: {
+    host: 'localhost',
+    port: 3270,
+    defaultUsername: 'HERC01',
+    defaultPassword: 'CUL8TR',
+  },
+};
+
+// Get current system from localStorage or default to pub400
+function getCurrentSystem(): SystemConfig {
+  if (typeof window !== 'undefined') {
+    const systemType = localStorage.getItem('mainframe-system-type') || 'pub400';
+    return SYSTEMS[systemType] || SYSTEMS.pub400;
+  }
+  return SYSTEMS.pub400;
+}
+
 export class FunctionExecutor {
   private static readonly STEP_DELAY = 1500; // ms between steps
 
@@ -109,18 +142,21 @@ export class FunctionExecutor {
     switch (functionId) {
       case 'logonispf':
         try {
+          // Get current system configuration
+          const systemConfig = getCurrentSystem();
+
           // First connect to mainframe using s3270
           const connectResponse = await mainframeApi.connect({
-            host: 'pub400.com',  // Use pub400.com for real mainframe testing
-            port: 23  // Standard telnet port for pub400
+            host: systemConfig.host,
+            port: systemConfig.port
           });
 
           if (connectResponse.success && connectResponse.session_id) {
             // Then login with provided credentials
             const loginResponse = await mainframeApi.login({
               session_id: connectResponse.session_id,
-              username: sanitizedInputs['User Name'] || 'testuser',
-              password: sanitizedInputs['Password'] || 'testpass'
+              username: sanitizedInputs['User Name'] || systemConfig.defaultUsername,
+              password: sanitizedInputs['Password'] || systemConfig.defaultPassword
             });
 
             if (loginResponse.success) {

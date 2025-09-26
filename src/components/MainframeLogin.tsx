@@ -25,6 +25,7 @@ export const MainframeLogin: React.FC<MainframeLoginProps> = ({
   } = useMainframe();
 
   // Local state
+  const [systemType, setSystemType] = useState<'pub400' | 'tk5'>('pub400');
   const [connectionForm, setConnectionForm] = useState({
     host: 'pub400.com',
     port: 23,
@@ -34,6 +35,19 @@ export const MainframeLogin: React.FC<MainframeLoginProps> = ({
     username: 'pub400',
     password: 'pub400',
   });
+
+  // Update connection details when system type changes
+  useEffect(() => {
+    if (systemType === 'tk5') {
+      setConnectionForm({ host: 'localhost', port: 3270 });
+      setLoginForm({ username: 'HERC01', password: 'CUL8TR' });
+    } else {
+      setConnectionForm({ host: 'pub400.com', port: 23 });
+      setLoginForm({ username: 'pub400', password: 'pub400' });
+    }
+    // Save to localStorage for function executor
+    localStorage.setItem('mainframe-system-type', systemType);
+  }, [systemType]);
 
   const [commandInput, setCommandInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -199,6 +213,39 @@ export const MainframeLogin: React.FC<MainframeLoginProps> = ({
           {!state.isConnected && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-800">Connection Settings</h3>
+
+              {/* System Type Selector */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Mainframe System
+                </label>
+                <div className="flex gap-4">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      value="pub400"
+                      checked={systemType === 'pub400'}
+                      onChange={(e) => setSystemType(e.target.value as 'pub400' | 'tk5')}
+                      className="mr-2"
+                    />
+                    <span className="text-sm">
+                      <strong>pub400.com</strong> - Public IBM i AS/400 System
+                    </span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      value="tk5"
+                      checked={systemType === 'tk5'}
+                      onChange={(e) => setSystemType(e.target.value as 'pub400' | 'tk5')}
+                      className="mr-2"
+                    />
+                    <span className="text-sm">
+                      <strong>Local TK5</strong> - MVS 3.8j System (localhost:3270)
+                    </span>
+                  </label>
+                </div>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-2">
