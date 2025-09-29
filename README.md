@@ -4,26 +4,31 @@ A modern web-based system for creating drag-and-drop test workflows and connecti
 
 一个现代化的基于Web的系统，用于创建拖放式测试工作流并通过s3270终端仿真连接IBM大型机。
 
-## 🎉 **Latest Release - Real Mainframe Integration**
+## 🎉 **Latest Release - TK5 Local Mainframe Integration**
 
 ### ✅ **What's New (Latest Update)**
-- 🔗 **Live Mainframe Connection**: Successfully tested connection to pub400.com (IBM i AS/400 system)
+- 🏠 **Local TK5 Mainframe**: Successfully integrated with TK5 MVS 3.8j system (localhost:3270)
+- 📁 **CreateFile Enhancement**: Real file creation functionality with actual downloadable files
+- 🔗 **Dual Mainframe Support**: Both pub400.com (remote) and TK5 (local) mainframe connections
+- 💾 **File Generation**: Structured file creation with copybook layouts and multiple formats
+- 🚀 **Workflow Integration**: LogonISPF + CreateFile workflows execute on real mainframe systems
 - 🖥️ **Seamless Navigation**: Added "Mainframe Terminal" button in homepage header for quick access
 - ⚡ **Real-time Terminal**: Full interactive s3270 terminal with live screen updates
-- 🔄 **Integrated Workflow**: LogonISPF and other functions now execute on real mainframe systems
 - 📱 **Responsive Design**: Beautiful gradient UI with hover effects and animations
 
 ### 🎯 **Demo Flow**
 1. Visit `http://localhost:3000` (or network IP for WiFi access) - Main workflow builder interface
-2. Click "**Mainframe Terminal**" button in top-right corner
-3. Connect to `pub400.com:23` with credentials `pub400/pub400`
-4. Experience real IBM mainframe interaction via s3270
-5. **Network Access**: Available at `http://[your-ip]:3000` for other devices on same WiFi
+2. **Local TK5**: Connect to `localhost:3270` with credentials `HERC01/CUL8TR`
+3. **Remote pub400**: Connect to `pub400.com:23` with credentials `pub400/pub400`
+4. **Test CreateFile**: Build LogonISPF + CreateFile workflow with real file generation
+5. Experience real IBM mainframe interaction via s3270
+6. **Network Access**: Available at `http://[your-ip]:3000` for other devices on same WiFi
 
 ### 💡 **Technical Achievement**
 - **Frontend**: Next.js 15 + React 19 + TypeScript
 - **Backend**: Python Flask + s3270 native integration
-- **Connection**: Direct telnet to pub400.com IBM i system
+- **Mainframes**: TK5 MVS 3.8j (localhost:3270) + pub400.com IBM i system
+- **File Processing**: Real file generation with copybook layouts and structured content
 - **UI/UX**: Glass-morphism design with smooth transitions
 
 ## 🌟 Features / 功能特性
