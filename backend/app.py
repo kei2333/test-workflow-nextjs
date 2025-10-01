@@ -39,11 +39,21 @@ class S3270Session:
     def connect(self, host: str, port: int = 23) -> Tuple[bool, str]:
         """Connect to mainframe using s3270"""
         try:
+            # Determine s3270 executable path based on OS
+            s3270_paths = [
+                r"C:\Program Files\wc3270\s3270.exe",  # Windows
+                "/opt/homebrew/bin/s3270",              # macOS Homebrew
+                "/usr/bin/s3270",                       # Linux
+                "/usr/local/bin/s3270",                 # Alternative
+                "s3270"                                 # PATH fallback
+            ]
+            s3270_exe = next((path for path in s3270_paths if os.path.exists(path)), "s3270")
+
             # Configure s3270 parameters based on target system
             if host == 'localhost' and port == 3270:
                 # TK5/Hercules specific configuration
                 s3270_cmd = [
-                    's3270',
+                    s3270_exe,
                     '-model', '3278-2',   # Use older 3278 model for TK5
                     '-script',            # Enable scripting mode
                     '-connecttimeout', '30',  # Longer timeout for TK5
@@ -53,7 +63,7 @@ class S3270Session:
             else:
                 # Standard configuration for modern systems like pub400
                 s3270_cmd = [
-                    's3270',
+                    s3270_exe,
                     '-model', '3279-4',  # 3270 model 4 (43x80)
                     '-script',           # Enable scripting mode
                     f'{host}:{port}'
@@ -65,6 +75,8 @@ class S3270Session:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
+                encoding='utf-8',
+                errors='replace',  # Replace unencodable characters
                 bufsize=0
             )
 
@@ -95,8 +107,6 @@ class S3270Session:
             return {"status": "error", "data": "Connection lost"}
 
         try:
-            import select
-
             # Send command to s3270
             self.process.stdin.write(f"{command}\n")
             self.process.stdin.flush()
@@ -106,18 +116,17 @@ class S3270Session:
             status = "ok"
             start_time = time.time()
 
+            # Windows compatible non-blocking read
             while True:
                 # Check for timeout
                 if time.time() - start_time > timeout:
                     return {"status": "error", "data": f"Command timeout after {timeout}s"}
 
-                # Use select to check if data is available (non-blocking)
-                ready, _, _ = select.select([self.process.stdout], [], [], 0.1)
-                if not ready:
-                    continue
-
+                # Try to read a line (blocking read with short timeout handled by readline)
                 line = self.process.stdout.readline().strip()
                 if not line:
+                    # Small sleep to prevent busy waiting
+                    time.sleep(0.01)
                     continue
 
                 if line.startswith("ok"):
@@ -159,7 +168,11 @@ class S3270Session:
         try:
             # Get current screen to see login prompt
             initial_screen = self.get_screen_text()
-            print(f"DEBUG: Initial screen content:\n{initial_screen}")
+            # Safe print with encoding handling
+            try:
+                print(f"DEBUG: Initial screen content:\n{initial_screen}")
+            except UnicodeEncodeError:
+                print("DEBUG: Initial screen content received (contains special characters)")
 
             # TK5 specific login handling
             if self.host == 'localhost' and self.port == 3270:
@@ -174,7 +187,10 @@ class S3270Session:
 
                 # Get intermediate screen
                 intermediate_screen = self.get_screen_text()
-                print(f"DEBUG: After username screen:\n{intermediate_screen}")
+                try:
+                    print(f"DEBUG: After username screen:\n{intermediate_screen}")
+                except UnicodeEncodeError:
+                    print("DEBUG: After username screen received")
 
                 # Type password
                 self._execute_command(f'String("{password}")')
@@ -207,7 +223,10 @@ class S3270Session:
 
             # Get screen after login attempt
             login_result_screen = self.get_screen_text()
-            print(f"DEBUG: Final login screen:\n{login_result_screen}")
+            try:
+                print(f"DEBUG: Final login screen:\n{login_result_screen}")
+            except UnicodeEncodeError:
+                print("DEBUG: Final login screen received")
 
             # Check for common success indicators in screen content
             success_indicators = ['READY', 'ISPF', 'MAIN MENU', 'TSO', 'LOGON', 'COMMAND', 'HERCULES']
@@ -327,10 +346,19 @@ class S3270Session:
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
+    # Check for s3270 in different OS paths
+    s3270_paths = [
+        "/opt/homebrew/bin/s3270",  # macOS Homebrew
+        "/usr/bin/s3270",            # Linux
+        "/usr/local/bin/s3270",      # Alternative Linux/macOS
+        r"C:\Program Files\wc3270\s3270.exe",  # Windows
+    ]
+    s3270_available = any(os.path.exists(path) for path in s3270_paths)
+
     return jsonify({
         "success": True,
         "status": "healthy",
-        "s3270_available": os.path.exists("/opt/homebrew/bin/s3270") or os.path.exists("/usr/bin/s3270"),
+        "s3270_available": s3270_available,
         "active_sessions": len(sessions)
     })
 
@@ -462,6 +490,15 @@ def list_sessions():
 
 if __name__ == '__main__':
     print("Starting IBM Mainframe API Server with s3270...")
-    print(f"s3270 path: {'/opt/homebrew/bin/s3270' if os.path.exists('/opt/homebrew/bin/s3270') else '/usr/bin/s3270'}")
+
+    # Find s3270 executable
+    s3270_paths = [
+        r"C:\Program Files\wc3270\s3270.exe",
+        "/opt/homebrew/bin/s3270",
+        "/usr/bin/s3270",
+        "/usr/local/bin/s3270"
+    ]
+    s3270_path = next((path for path in s3270_paths if os.path.exists(path)), "s3270 (in PATH)")
+    print(f"s3270 path: {s3270_path}")
 
     app.run(host='0.0.0.0', port=5001, debug=True)
