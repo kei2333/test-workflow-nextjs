@@ -92,19 +92,83 @@ IBM Mainframe Systems
    # CentOS/RHEL
    sudo yum install x3270-tcl
 
-   # Windows
+   # Windows - Download wc3270 (includes s3270)
    # Download from: http://x3270.bgp.nu/download.html
-   # Or use WSL with Ubuntu commands above
-   # Or install via chocolatey: choco install x3270
+   # Install to: C:\Program Files\wc3270\
+   # The backend will auto-detect s3270.exe in this location
    ```
 
-2. **Install Node.js 18+** / **安装Node.js 18+**
+2. **Install TK5 (Optional - for local mainframe)** / **安装TK5（可选 - 用于本地大型机）**
+
+   TK5 is a ready-to-run MVS 3.8j system that runs on Hercules emulator.
+   TK5 是一个即用型 MVS 3.8j 系统，运行在 Hercules 模拟器上。
+
+   **Option 1: Windows (Recommended)**
+   ```bash
+   # 1. Download TK5
+   # Visit: http://wotho.ethz.ch/tk4-/
+   # Download: tk4-_v1.00_current.zip
+
+   # 2. Extract to any location (e.g., Y:\mvs-tk5 or C:\tk5)
+   # TK5 includes Hercules - no separate installation needed!
+
+   # 3. Start TK5
+   cd Y:\mvs-tk5  # or your extraction path
+   start_herc.bat  # or mvs.bat
+
+   # 4. Wait for TK5 to start (listen on port 3270)
+   # Default credentials: HERC01 / CUL8TR
+   ```
+
+   **Option 2: Linux/macOS**
+   ```bash
+   # 1. Install Hercules
+   # macOS:
+   brew install hercules
+
+   # Ubuntu/Debian:
+   sudo apt-get install hercules
+
+   # 2. Download and extract TK5
+   wget http://wotho.ethz.ch/tk4-/tk4-_v1.00_current.zip
+   unzip tk4-_v1.00_current.zip
+   cd tk4-
+
+   # 3. Start TK5
+   ./mvs
+
+   # 4. TK5 will listen on port 3270
+   # Default credentials: HERC01 / CUL8TR
+   ```
+
+   **Option 3: Docker (Easiest)**
+   ```bash
+   # Pull and run TK5 in Docker
+   docker run -d -p 3270:3270 -p 8038:8038 rattydave/docker-ubuntu-hercules-mvs
+
+   # TK5 will be available at localhost:3270
+   # Default credentials: HERC01 / CUL8TR
+   ```
+
+   **Verify TK5 is running:**
+   ```bash
+   # Check if port 3270 is listening
+   # Windows:
+   netstat -an | findstr :3270
+
+   # Linux/macOS:
+   netstat -an | grep 3270
+
+   # Should show: TCP 0.0.0.0:3270 ... LISTENING
+   ```
+
+3. **Install Node.js 18+** / **安装Node.js 18+**
    ```bash
    # Check version / 检查版本
    node --version
    ```
 
-3. **Install Python 3.8+** / **安装Python 3.8+**
+4. **Install Python 3.8+** / **安装Python 3.8+**
    ```bash
    # Check version / 检查版本
    python3 --version
