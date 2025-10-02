@@ -89,10 +89,12 @@ Before you start, here's what you'll need to install (we'll check each one first
 - ✅ **Git** - Version control to download the project
 - ✅ **Python** (v3.8 or higher) - Backend server language
 - ✅ **s3270** (wc3270) - IBM mainframe terminal emulator
+- 🔄 **TK5** (Optional) - Local IBM mainframe environment (~1GB download)
 - ✅ **Node.js** (v18及以上) - 网站的JavaScript运行环境
 - ✅ **Git** - 版本控制工具，用于下载项目
 - ✅ **Python** (v3.8及以上) - 后端服务器语言
 - ✅ **s3270** (wc3270) - IBM大型机终端仿真器
+- 🔄 **TK5** (可选) - 本地IBM大型机环境 (~1GB下载)
 
 #### 🍎 For Mac / Mac系统:
 - ✅ **Homebrew** - Package manager for Mac
@@ -100,11 +102,15 @@ Before you start, here's what you'll need to install (we'll check each one first
 - ✅ **Git** - Version control to download the project
 - ✅ **Python** (v3.8 or higher) - Backend server language
 - ✅ **s3270** - IBM mainframe terminal emulator
+- 🔄 **Hercules** (Optional) - Mainframe emulator for TK5
+- 🔄 **TK5** (Optional) - Local IBM mainframe environment (~1GB download)
 - ✅ **Homebrew** - Mac的包管理器
 - ✅ **Node.js** (v18及以上) - 网站的JavaScript运行环境
 - ✅ **Git** - 版本控制工具，用于下载项目
 - ✅ **Python** (v3.8及以上) - 后端服务器语言
 - ✅ **s3270** - IBM大型机终端仿真器
+- 🔄 **Hercules** (可选) - TK5的大型机仿真器
+- 🔄 **TK5** (可选) - 本地IBM大型机环境 (~1GB下载)
 
 #### 📦 Python Packages (Automatically Installed) / Python包（自动安装）:
 - `flask` - Web framework for backend API
@@ -113,8 +119,10 @@ Before you start, here's what you'll need to install (we'll check each one first
 - `python-dotenv` - Environment variable management
 
 #### 📊 Estimated Installation Time / 预计安装时间:
-- **New installation**: 15-30 minutes / **全新安装**: 15-30分钟
+- **New installation (without TK5)**: 15-30 minutes / **全新安装(不含TK5)**: 15-30分钟
+- **New installation (with TK5)**: 30-60 minutes / **全新安装(含TK5)**: 30-60分钟
 - **If software already installed**: 5-10 minutes / **如果软件已安装**: 5-10分钟
+- **TK5 download alone**: 10-30 minutes depending on internet speed / **仅TK5下载**: 根据网速需10-30分钟
 
 #### 🔍 Quick Check Commands / 快速检查命令:
 Before following the detailed guide, you can quickly check what's already installed:
@@ -126,6 +134,7 @@ node --version
 git --version
 python --version
 s3270 --version
+netstat -an | findstr :3270
 ```
 
 **Mac (Terminal):**
@@ -135,10 +144,16 @@ node --version
 git --version
 python3 --version
 s3270 --version
+netstat -an | grep 3270
 ```
 
-If you see version numbers for all commands, you can skip directly to downloading the project!
-如果所有命令都显示版本号，您可以直接跳到下载项目部分！
+**Command Results Explanation / 命令结果说明:**
+- **Version numbers** = Software is installed / **显示版本号** = 软件已安装
+- **"command not found"** = Software needs installation / **"command not found"** = 需要安装软件
+- **TK5 check (last command)**: If shows "LISTENING", TK5 is running / **TK5检查(最后命令)**: 显示"LISTENING"表示TK5正在运行
+
+If you see version numbers for the first 4 commands, you can skip to downloading the project!
+如果前4个命令都显示版本号，您可以直接跳到下载项目部分！
 
 ---
 
@@ -272,7 +287,41 @@ This is a detailed guide for running the Test Workflow website on your Windows c
    - Install to default location: `C:\Program Files\wc3270\`
    - The application will automatically find s3270.exe there
 
-#### Step 7: Setup Python Backend (设置Python后端)
+#### Step 7: Install TK5 Local Mainframe (Optional) (安装TK5本地大型机 - 可选)
+TK5 provides a local IBM mainframe environment for testing without internet connection.
+TK5提供本地IBM大型机环境，无需网络连接即可测试。
+
+1. **Check if TK5 is Already Running**:
+   - Press `Windows Key + R`, type `cmd` and press Enter
+   - Type: `netstat -an | findstr :3270`
+   - If you see `TCP 0.0.0.0:3270 ... LISTENING`, **TK5 is already running - skip to Step 8!**
+   - If nothing appears, continue with installation below
+
+2. **Download TK5** (only if not running):
+   - Go to: http://wotho.ethz.ch/tk4-/
+   - Download: `tk4-_v1.00_current.zip`
+   - This is a large file (~1GB) - be patient!
+
+3. **Install TK5**:
+   - Extract the ZIP file to any location (e.g., `C:\tk5` or `Y:\mvs-tk5`)
+   - TK5 includes Hercules emulator - no separate installation needed!
+
+4. **Start TK5**:
+   - Open the extracted folder
+   - Double-click `mvs.bat`
+   - A black window will open - wait for it to finish loading (2-3 minutes)
+   - When you see messages about "listening on port 3270", TK5 is ready
+   - **Keep this window open** - closing it will stop TK5
+
+5. **Verify TK5 is Running**:
+   - In Command Prompt, type: `netstat -an | findstr :3270`
+   - You should see: `TCP 0.0.0.0:3270 ... LISTENING`
+   - **Default TK5 Credentials**: Username: `HERC01`, Password: `CUL8TR`
+
+#### Step 8: Setup Python Backend (设置Python后端)
+**Important**: Make sure you're in the project directory (test-workflow-nextjs folder in Git Bash).
+**重要**: 确保您在项目目录中（Git Bash中的test-workflow-nextjs文件夹）。
+
 1. **Create Python Virtual Environment**:
    ```bash
    python -m venv .venv
@@ -303,7 +352,7 @@ This is a detailed guide for running the Test Workflow website on your Windows c
    ```
    - This creates the configuration file needed for the frontend to connect to backend
 
-#### Step 8: Start the Website (启动网站)
+#### Step 9: Start the Website (启动网站)
 1. **Start Backend Server** (in Git Bash):
    ```bash
    python app.py
@@ -324,7 +373,7 @@ This is a detailed guide for running the Test Workflow website on your Windows c
    - You should see "Local: http://localhost:3000"
    - You'll also see "Network: http://[your-ip]:3000" - this allows other devices on your WiFi to access the website
 
-#### Step 9: Open the Website (打开网站)
+#### Step 10: Open the Website (打开网站)
 1. **Open Your Web Browser** (Chrome, Edge, Firefox):
    - Type in the address bar: `http://localhost:3000`
    - Press Enter
@@ -479,7 +528,55 @@ Homebrew makes it easy to install software on Mac.
    ```
    - You should see version information
 
-#### Step 8: Setup Python Backend (设置Python后端)
+#### Step 8: Install TK5 Local Mainframe (Optional) (安装TK5本地大型机 - 可选)
+TK5 provides a local IBM mainframe environment for testing without internet connection.
+TK5提供本地IBM大型机环境，无需网络连接即可测试。
+
+1. **Check if TK5 is Already Running**:
+   ```bash
+   netstat -an | grep 3270
+   ```
+   - If you see `tcp4  0  0  *.3270  *.*  LISTEN`, **TK5 is already running - skip to Step 9!**
+   - If nothing appears, continue with installation below
+
+2. **Install Hercules Emulator** (required for TK5):
+   ```bash
+   brew install hercules
+   ```
+
+3. **Download TK5** (only if not running):
+   ```bash
+   cd ~/Desktop
+   curl -O http://wotho.ethz.ch/tk4-/tk4-_v1.00_current.zip
+   unzip tk4-_v1.00_current.zip
+   cd tk4-
+   ```
+   - This is a large file (~1GB) - be patient!
+
+4. **Start TK5**:
+   ```bash
+   ./mvs
+   ```
+   - Wait for it to finish loading (2-3 minutes)
+   - When you see messages about "listening on port 3270", TK5 is ready
+   - **Keep this Terminal window open** - TK5 is running
+   - **Important**: You'll need to open a NEW Terminal window for the next steps
+
+5. **Verify TK5 is Running** (in a new Terminal window):
+   ```bash
+   netstat -an | grep 3270
+   ```
+   - You should see: `tcp4  0  0  *.3270  *.*  LISTEN`
+   - **Default TK5 Credentials**: Username: `HERC01`, Password: `CUL8TR`
+
+#### Step 9: Setup Python Backend (设置Python后端)
+**Important**: Make sure you're in the project directory. If you just installed TK5, you need to navigate back:
+**重要**: 确保您在项目目录中。如果刚安装了TK5，需要切换回来：
+
+```bash
+cd ~/Desktop/test-workflow-nextjs
+```
+
 1. **Create Python Virtual Environment**:
    ```bash
    python3 -m venv .venv
@@ -510,7 +607,7 @@ Homebrew makes it easy to install software on Mac.
    ```
    - This creates the configuration file needed for the frontend to connect to backend
 
-#### Step 9: Start the Website (启动网站)
+#### Step 10: Start the Website (启动网站)
 1. **Start Backend Server** (in current Terminal):
    ```bash
    python3 app.py
@@ -534,7 +631,7 @@ Homebrew makes it easy to install software on Mac.
    - You should see "Local: http://localhost:3000"
    - You'll also see "Network: http://[your-ip]:3000" - this allows other devices on your WiFi to access the website
 
-#### Step 10: Open the Website (打开网站)
+#### Step 11: Open the Website (打开网站)
 1. **Open Your Web Browser** (Safari, Chrome, Firefox):
    - Type in the address bar: `http://localhost:3000`
    - Press Enter
