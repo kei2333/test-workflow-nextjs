@@ -77,178 +77,513 @@ Backend (Python Flask + s3270)
 IBM Mainframe Systems
 ```
 
-## 🚀 Quick Start / 快速开始
+## 🚀 How to Run This Website / 网站运行教程
 
-### Prerequisites / 前置要求
+### 📋 Required Software List / 所需软件列表
 
-1. **Install s3270** / **安装s3270**
+Before you start, here's what you'll need to install (we'll check each one first):
+开始之前，这里列出了需要安装的软件（我们会先检查每个软件是否已安装）：
+
+#### 🪟 For Windows / Windows系统:
+- ✅ **Node.js** (v18 or higher) - JavaScript runtime for the website
+- ✅ **Git** - Version control to download the project
+- ✅ **Python** (v3.8 or higher) - Backend server language
+- ✅ **s3270** (wc3270) - IBM mainframe terminal emulator
+- ✅ **Node.js** (v18及以上) - 网站的JavaScript运行环境
+- ✅ **Git** - 版本控制工具，用于下载项目
+- ✅ **Python** (v3.8及以上) - 后端服务器语言
+- ✅ **s3270** (wc3270) - IBM大型机终端仿真器
+
+#### 🍎 For Mac / Mac系统:
+- ✅ **Homebrew** - Package manager for Mac
+- ✅ **Node.js** (v18 or higher) - JavaScript runtime for the website
+- ✅ **Git** - Version control to download the project
+- ✅ **Python** (v3.8 or higher) - Backend server language
+- ✅ **s3270** - IBM mainframe terminal emulator
+- ✅ **Homebrew** - Mac的包管理器
+- ✅ **Node.js** (v18及以上) - 网站的JavaScript运行环境
+- ✅ **Git** - 版本控制工具，用于下载项目
+- ✅ **Python** (v3.8及以上) - 后端服务器语言
+- ✅ **s3270** - IBM大型机终端仿真器
+
+#### 📦 Python Packages (Automatically Installed) / Python包（自动安装）:
+- `flask` - Web framework for backend API
+- `flask-cors` - Cross-origin resource sharing
+- `py3270` - Python interface for s3270 mainframe connections
+- `python-dotenv` - Environment variable management
+
+#### 📊 Estimated Installation Time / 预计安装时间:
+- **New installation**: 15-30 minutes / **全新安装**: 15-30分钟
+- **If software already installed**: 5-10 minutes / **如果软件已安装**: 5-10分钟
+
+#### 🔍 Quick Check Commands / 快速检查命令:
+Before following the detailed guide, you can quickly check what's already installed:
+在按照详细教程操作之前，您可以快速检查已安装的软件：
+
+**Windows (Command Prompt):**
+```cmd
+node --version
+git --version
+python --version
+s3270 --version
+```
+
+**Mac (Terminal):**
+```bash
+brew --version
+node --version
+git --version
+python3 --version
+s3270 --version
+```
+
+If you see version numbers for all commands, you can skip directly to downloading the project!
+如果所有命令都显示版本号，您可以直接跳到下载项目部分！
+
+---
+
+### 🪟 For Windows Users (Windows用户教程)
+
+This is a detailed guide for running the Test Workflow website on your Windows computer. No previous programming experience required!
+
+这是一个在Windows电脑上运行测试工作流网站的详细教程。无需编程经验！
+
+#### Step 1: Check and Install Node.js (检查并安装Node.js)
+1. **First, Check if Node.js is Already Installed**:
+   - Press `Windows Key + R`
+   - Type `cmd` and press Enter
+   - In the black window, type: `node --version`
+   - If you see a version number like `v18.x.x` or `v20.x.x`, **Node.js is already installed - skip to Step 2!**
+   - If you see "command not found" or an error, continue with installation below
+
+2. **Download Node.js** (only if not installed):
+   - Go to: https://nodejs.org/
+   - You will see two big green buttons - click the **"LTS"** button (Recommended for most users)
+   - This will download a file like `node-v20.x.x-x64.msi`
+
+3. **Install Node.js** (only if not installed):
+   - Double-click the downloaded `.msi` file
+   - Click "Next" through all the installation steps
+   - Accept the license agreement
+   - Keep all default settings - just keep clicking "Next"
+   - Click "Install" and wait for it to finish
+   - **Important**: Restart your computer after installation
+
+4. **Verify Installation**:
+   - Press `Windows Key + R`
+   - Type `cmd` and press Enter
+   - In the black window, type: `node --version`
+   - You should see something like `v20.x.x` - this means Node.js is installed correctly
+
+#### Step 2: Check and Install Git (检查并安装Git)
+1. **First, Check if Git is Already Installed**:
+   - Press `Windows Key + R`
+   - Type `cmd` and press Enter
+   - In the black window, type: `git --version`
+   - If you see a version number like `git version 2.x.x`, **Git is already installed - skip to Step 3!**
+   - Also check: Right-click on your Desktop - if you see "Git Bash Here", Git is installed
+   - If you see "command not found" or no "Git Bash Here" option, continue with installation below
+
+2. **Download Git** (only if not installed):
+   - Go to: https://git-scm.com/download/win
+   - Click "Download for Windows" - this will download `Git-x.x.x-64-bit.exe`
+
+3. **Install Git** (only if not installed):
+   - Double-click the downloaded `.exe` file
+   - **Important**: Keep ALL default settings - just click "Next" through everything
+   - The installation will ask many questions - just keep clicking "Next"
+   - Click "Install" and wait for completion
+
+4. **Verify Git is Working**:
+   - On your Desktop, right-click on empty space
+   - You should now see "Git Bash Here" in the menu - this means Git is installed correctly
+
+#### Step 3: Download the Website Files (下载网站文件)
+1. **Open Git Bash**:
+   - On your Desktop, right-click on empty space
+   - Click "Git Bash Here"
+   - A black window will open
+
+2. **Download the Project**:
+   - In the black window, type this command and press Enter:
    ```bash
-   # macOS
-   brew install s3270
-
-   # Ubuntu/Debian
-   sudo apt-get install x3270-tcl
-
-   # CentOS/RHEL
-   sudo yum install x3270-tcl
-
-   # Windows - Download wc3270 (includes s3270)
-   # Download from: http://x3270.bgp.nu/download.html
-   # Install to: C:\Program Files\wc3270\
-   # The backend will auto-detect s3270.exe in this location
+   git clone https://github.com/kei2333/test-workflow-nextjs.git
    ```
+   - Wait for the download to complete (you'll see progress messages)
 
-2. **Install TK5 (Optional - for local mainframe)** / **安装TK5（可选 - 用于本地大型机）**
-
-   TK5 is a ready-to-run MVS 3.8j system that runs on Hercules emulator.
-   TK5 是一个即用型 MVS 3.8j 系统，运行在 Hercules 模拟器上。
-
-   **Option 1: Windows (Recommended)**
+3. **Enter the Project Folder**:
    ```bash
-   # 1. Download TK5
-   # Visit: http://wotho.ethz.ch/tk4-/
-   # Download: tk4-_v1.00_current.zip
-
-   # 2. Extract to any location (e.g., Y:\mvs-tk5 or C:\tk5)
-   # TK5 includes Hercules - no separate installation needed!
-
-   # 3. Start TK5
-   cd Y:\mvs-tk5  # or your extraction path
-   start_herc.bat  # or mvs.bat
-
-   # 4. Wait for TK5 to start (listen on port 3270)
-   # Default credentials: HERC01 / CUL8TR
-   ```
-
-   **Option 2: Linux/macOS**
-   ```bash
-   # 1. Install Hercules
-   # macOS:
-   brew install hercules
-
-   # Ubuntu/Debian:
-   sudo apt-get install hercules
-
-   # 2. Download and extract TK5
-   wget http://wotho.ethz.ch/tk4-/tk4-_v1.00_current.zip
-   unzip tk4-_v1.00_current.zip
-   cd tk4-
-
-   # 3. Start TK5
-   ./mvs
-
-   # 4. TK5 will listen on port 3270
-   # Default credentials: HERC01 / CUL8TR
-   ```
-
-   **Option 3: Docker (Easiest)**
-   ```bash
-   # Pull and run TK5 in Docker
-   docker run -d -p 3270:3270 -p 8038:8038 rattydave/docker-ubuntu-hercules-mvs
-
-   # TK5 will be available at localhost:3270
-   # Default credentials: HERC01 / CUL8TR
-   ```
-
-   **Verify TK5 is running:**
-   ```bash
-   # Check if port 3270 is listening
-   # Windows:
-   netstat -an | findstr :3270
-
-   # Linux/macOS:
-   netstat -an | grep 3270
-
-   # Should show: TCP 0.0.0.0:3270 ... LISTENING
-   ```
-
-3. **Install Node.js 18+** / **安装Node.js 18+**
-   ```bash
-   # Check version / 检查版本
-   node --version
-   ```
-
-4. **Install Python 3.8+** / **安装Python 3.8+**
-   ```bash
-   # Check version / 检查版本
-   python3 --version
-   ```
-
-### Installation / 安装
-
-1. **Clone the repository** / **克隆仓库**
-   ```bash
-   git clone <repository-url>
    cd test-workflow-nextjs
    ```
 
-2. **Install frontend dependencies** / **安装前端依赖**
+4. **Get Latest Updates** (if you already have the project):
+   ```bash
+   git pull origin master
+   ```
+
+#### Step 4: Install Required Packages (安装必需包)
+1. **Install Website Dependencies**:
+   - In the same Git Bash window, type:
    ```bash
    npm install
    ```
+   - This will take 2-5 minutes - you'll see lots of text scrolling
+   - Wait until you see the cursor blinking again (meaning it's done)
 
-3. **Setup Python backend** / **设置Python后端**
+#### Step 5: Check and Install Python (检查并安装Python)
+1. **First, Check if Python is Already Installed**:
+   - Press `Windows Key + R`
+   - Type `cmd` and press Enter
+   - In the black window, type: `python --version`
+   - If you see a version number like `Python 3.8.x` or higher, **Python is already installed - skip to Step 6!**
+   - If you see "command not found" or an error, continue with installation below
+
+2. **Download Python** (only if not installed):
+   - Go to: https://www.python.org/downloads/
+   - Click the big yellow "Download Python 3.x.x" button
+   - This downloads a file like `python-3.x.x-amd64.exe`
+
+3. **Install Python** (only if not installed):
+   - Double-click the downloaded `.exe` file
+   - **VERY IMPORTANT**: Check the box "Add Python to PATH" at the bottom
+   - Click "Install Now"
+   - Wait for installation to complete
+
+4. **Verify Python**:
+   - In Git Bash, type: `python --version`
+   - You should see `Python 3.x.x`
+
+#### Step 6: Check and Install s3270 (检查并安装s3270 - 大型机必需)
+1. **First, Check if s3270 is Already Installed**:
+   - Press `Windows Key + R`
+   - Type `cmd` and press Enter
+   - In the black window, type: `s3270 --version`
+   - If you see version information, **s3270 is already installed - skip to Step 7!**
+   - Also check if this file exists: `C:\Program Files\wc3270\s3270.exe`
+   - If you see "command not found" or the file doesn't exist, continue with installation below
+
+2. **Download s3270 for Windows** (only if not installed):
+   - Go to: http://x3270.bgp.nu/download.html
+   - Download "wc3270" (Windows version)
+   - This includes s3270.exe which is needed for mainframe connections
+
+3. **Install s3270** (only if not installed):
+   - Run the downloaded installer
+   - Install to default location: `C:\Program Files\wc3270\`
+   - The application will automatically find s3270.exe there
+
+#### Step 7: Setup Python Backend (设置Python后端)
+1. **Create Python Virtual Environment**:
    ```bash
-   # Create virtual environment / 创建虚拟环境
-   python3 -m venv .venv
-
-   # Activate virtual environment / 激活虚拟环境
-   # Linux/macOS:
-   source .venv/bin/activate
-
-   # Windows Command Prompt:
-   .venv\Scripts\activate.bat
-
-   # Windows PowerShell:
-   .venv\Scripts\Activate.ps1
-
-   # Install Python dependencies / 安装Python依赖
-   cd backend
-   pip install flask flask-cors
+   python -m venv .venv
    ```
+   - This creates a new Python virtual environment for the project
 
-### Running the Application / 运行应用
-
-You need to start both frontend and backend services:
-你需要同时启动前端和后端服务：
-
-1. **Start the backend server** / **启动后端服务器**
+2. **Activate Python Environment**:
    ```bash
-   # In terminal 1 / 在终端1中
+   .venv/Scripts/activate
+   ```
+   - Your prompt will change to show `(.venv)` at the beginning
+
+3. **Install Python Packages**:
+   ```bash
    cd backend
+   pip install flask flask-cors py3270 python-dotenv
+   ```
+   - This installs all required packages for the mainframe backend
 
-   # Activate virtual environment / 激活虚拟环境
-   # Linux/macOS:
-   source ../.venv/bin/activate
+4. **Create Environment Configuration File**:
+   ```bash
+   # Go back to project root
+   cd ..
 
-   # Windows Command Prompt:
-   ../.venv/Scripts/activate.bat
+   # Create .env.local file
+   echo "NEXT_PUBLIC_API_URL=http://localhost:5001" > .env.local
+   echo "NODE_ENV=development" >> .env.local
+   ```
+   - This creates the configuration file needed for the frontend to connect to backend
 
-   # Windows PowerShell:
-   ../.venv/Scripts/Activate.ps1
-
-   # Start server / 启动服务器
-   # Linux/macOS:
-   python3 app.py
-
-   # Windows:
+#### Step 8: Start the Website (启动网站)
+1. **Start Backend Server** (in Git Bash):
+   ```bash
    python app.py
    ```
-   Backend will run on `http://localhost:5001`
-   后端将运行在 `http://localhost:5001`
+   - Keep this window open - you should see "Running on http://127.0.0.1:5001"
 
-2. **Start the frontend server** / **启动前端服务器**
+2. **Open a NEW Git Bash Window**:
+   - Right-click on Desktop again → "Git Bash Here"
+   - Navigate back to the project:
    ```bash
-   # In terminal 2 / 在终端2中
+   cd test-workflow-nextjs
+   ```
+
+3. **Start Frontend Server**:
+   ```bash
    npm run dev
    ```
-   Frontend will run on `http://localhost:3000`
-   前端将运行在 `http://localhost:3000`
+   - You should see "Local: http://localhost:3000"
+   - You'll also see "Network: http://[your-ip]:3000" - this allows other devices on your WiFi to access the website
 
-3. **Access the application** / **访问应用**
-   - **Main workflow**: `http://localhost:3000` - Drag & drop workflow builder
-   - **Mainframe terminal**: `http://localhost:3000/mainframe` - Direct s3270 terminal access
-   - **Quick navigation**: Use the "Mainframe Terminal" button in top-right corner of homepage
+#### Step 9: Open the Website (打开网站)
+1. **Open Your Web Browser** (Chrome, Edge, Firefox):
+   - Type in the address bar: `http://localhost:3000`
+   - Press Enter
+   - **You should now see the Test Workflow website! 🎉**
+
+#### 🔧 Troubleshooting (故障排除)
+- **If Node.js doesn't work**: Make sure you restarted your computer after installation
+- **If Git Bash doesn't appear**: Restart your computer and try again
+- **If you get permission errors**: Right-click Git Bash and select "Run as administrator"
+- **If the website doesn't load**: Make sure both backend and frontend are running in separate windows
+
+---
+
+### 🍎 For Mac Users (Mac用户教程)
+
+This is a detailed guide for running the Test Workflow website on your Mac. No previous programming experience required!
+
+这是一个在Mac电脑上运行测试工作流网站的详细教程。无需编程经验！
+
+#### Step 1: Check and Install Homebrew (检查并安装Homebrew包管理器)
+Homebrew makes it easy to install software on Mac.
+
+1. **Open Terminal**:
+   - Press `Command + Space` to open Spotlight
+   - Type "Terminal" and press Enter
+   - A black/white window will open
+
+2. **First, Check if Homebrew is Already Installed**:
+   ```bash
+   brew --version
+   ```
+   - If you see version information like `Homebrew 4.x.x`, **Homebrew is already installed - skip to Step 2!**
+   - If you see "command not found", continue with installation below
+
+3. **Install Homebrew** (only if not installed):
+   - Copy and paste this command into Terminal:
+   ```bash
+   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+   ```
+   - Press Enter and wait for installation (this takes 5-10 minutes)
+   - You may be asked to enter your Mac password
+
+4. **Verify Homebrew**:
+   ```bash
+   brew --version
+   ```
+   - You should see version information
+
+#### Step 2: Check and Install Node.js (检查并安装Node.js)
+1. **First, Check if Node.js is Already Installed**:
+   ```bash
+   node --version
+   npm --version
+   ```
+   - If you see version numbers like `v18.x.x` or `v20.x.x`, **Node.js is already installed - skip to Step 3!**
+   - If you see "command not found", continue with installation below
+
+2. **Install Node.js with Homebrew** (only if not installed):
+   ```bash
+   brew install node
+   ```
+   - This will take a few minutes
+
+3. **Verify Installation**:
+   ```bash
+   node --version
+   npm --version
+   ```
+   - Both commands should show version numbers
+
+#### Step 3: Check and Install Git (检查并安装Git)
+1. **First, Check if Git is Already Installed**:
+   ```bash
+   git --version
+   ```
+   - If you see a version number like `git version 2.x.x`, **Git is already installed - skip to Step 4!**
+   - If you see "command not found", continue with installation below
+
+2. **Install Git** (only if not installed):
+   ```bash
+   brew install git
+   ```
+
+3. **Verify Git**:
+   ```bash
+   git --version
+   ```
+
+#### Step 4: Download the Website Files (下载网站文件)
+1. **Navigate to Desktop**:
+   ```bash
+   cd ~/Desktop
+   ```
+
+2. **Download the Project**:
+   ```bash
+   git clone https://github.com/kei2333/test-workflow-nextjs.git
+   ```
+
+3. **Enter Project Folder**:
+   ```bash
+   cd test-workflow-nextjs
+   ```
+
+4. **Get Latest Updates** (if you already have the project):
+   ```bash
+   git pull origin master
+   ```
+
+#### Step 5: Install Project Dependencies (安装项目依赖)
+1. **Install Website Packages**:
+   ```bash
+   npm install
+   ```
+   - Wait 2-5 minutes for completion
+
+#### Step 6: Check and Install Python (检查并安装Python)
+1. **First, Check if Python is Already Installed**:
+   ```bash
+   python3 --version
+   ```
+   - If you see a version number like `Python 3.8.x` or higher, **Python is already installed - skip to Step 7!**
+   - If you see "command not found", continue with installation below
+
+2. **Install Python with Homebrew** (only if not installed):
+   ```bash
+   brew install python
+   ```
+
+3. **Verify Python**:
+   ```bash
+   python3 --version
+   ```
+
+#### Step 7: Check and Install s3270 (检查并安装s3270 - 大型机必需)
+1. **First, Check if s3270 is Already Installed**:
+   ```bash
+   s3270 --version
+   ```
+   - If you see version information, **s3270 is already installed - skip to Step 8!**
+   - If you see "command not found", continue with installation below
+
+2. **Install s3270 with Homebrew** (only if not installed):
+   ```bash
+   brew install s3270
+   ```
+   - This installs the s3270 terminal emulator needed for mainframe connections
+
+3. **Verify s3270 Installation**:
+   ```bash
+   s3270 --version
+   ```
+   - You should see version information
+
+#### Step 8: Setup Python Backend (设置Python后端)
+1. **Create Python Virtual Environment**:
+   ```bash
+   python3 -m venv .venv
+   ```
+   - This creates a new Python virtual environment for the project
+
+2. **Activate Python Environment**:
+   ```bash
+   source .venv/bin/activate
+   ```
+   - Your prompt will show `(.venv)` at the beginning
+
+3. **Install Python Packages**:
+   ```bash
+   cd backend
+   pip install flask flask-cors py3270 python-dotenv
+   ```
+   - This installs all required packages for the mainframe backend
+
+4. **Create Environment Configuration File**:
+   ```bash
+   # Go back to project root
+   cd ..
+
+   # Create .env.local file
+   echo "NEXT_PUBLIC_API_URL=http://localhost:5001" > .env.local
+   echo "NODE_ENV=development" >> .env.local
+   ```
+   - This creates the configuration file needed for the frontend to connect to backend
+
+#### Step 9: Start the Website (启动网站)
+1. **Start Backend Server** (in current Terminal):
+   ```bash
+   python3 app.py
+   ```
+   - You should see "Running on http://127.0.0.1:5001"
+   - Keep this Terminal window open
+
+2. **Open New Terminal Window**:
+   - Press `Command + T` to open new tab
+   - Or open a completely new Terminal window
+
+3. **Navigate to Project**:
+   ```bash
+   cd ~/Desktop/test-workflow-nextjs
+   ```
+
+4. **Start Frontend Server**:
+   ```bash
+   npm run dev
+   ```
+   - You should see "Local: http://localhost:3000"
+   - You'll also see "Network: http://[your-ip]:3000" - this allows other devices on your WiFi to access the website
+
+#### Step 10: Open the Website (打开网站)
+1. **Open Your Web Browser** (Safari, Chrome, Firefox):
+   - Type in the address bar: `http://localhost:3000`
+   - Press Enter
+   - **You should now see the Test Workflow website! 🎉**
+
+#### 🔧 Troubleshooting (故障排除)
+- **If Homebrew installation fails**: Make sure you have internet connection and try again
+- **If commands are not found**: Close and reopen Terminal, then try again
+- **If Python commands don't work**: Use `python3` instead of `python`
+- **If the website doesn't load**: Make sure both backend and frontend are running in separate Terminal windows
+
+---
+
+### 🌐 Using the Website (使用网站)
+
+Once the website is running, you can:
+网站运行后，您可以：
+
+1. **Access the Website**:
+   - **Local**: `http://localhost:3000` (only on your computer)
+   - **Network**: `http://[your-ip]:3000` (from other devices on same WiFi)
+   - **本地访问**: `http://localhost:3000` (仅限本机)
+   - **网络访问**: `http://[你的IP]:3000` (同一WiFi下的其他设备)
+
+2. **Drag and Drop Functions**:
+   - Drag functions from the left panel to the right canvas
+   - 从左侧面板拖拽功能到右侧画布
+
+3. **Build Workflows**:
+   - Arrange functions in the order you want them to execute
+   - 按照您希望执行的顺序排列功能
+
+4. **Run Workflows**:
+   - Click the "Run Workflow" button to execute your test sequence
+   - 点击"Run Workflow"按钮执行您的测试序列
+
+5. **Access Mainframe Terminal**:
+   - Click "Mainframe Terminal" button for advanced features
+   - 点击"Mainframe Terminal"按钮使用高级功能
+
+### 🆘 Getting Help (获取帮助)
+
+If you encounter any issues:
+如果遇到任何问题：
+
+- **Check that both servers are running**: You should have two terminal/command windows open
+- **Restart everything**: Close all windows and start from Step 7/8 again
+- **Check the address**: Make sure you're going to `http://localhost:3000`
+- **Try a different browser**: Sometimes different browsers work better
 
 ## 🔧 How s3270 Mainframe Connection Works / s3270大型机连接原理
 
