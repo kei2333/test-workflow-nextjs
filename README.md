@@ -379,6 +379,28 @@ TK5提供本地IBM大型机环境，无需网络连接即可测试。
    - Press Enter
    - **You should now see the Test Workflow website! 🎉**
 
+#### Step 11: How to Stop Everything (如何停止所有服务)
+
+After you're done using the website, you need to properly stop all running services:
+
+使用完网站后，需要正确停止所有运行的服务：
+
+1. **Stop Frontend Server (停止前端服务器)**:
+   - In the Git Bash window running `npm run dev`
+   - Press `Ctrl + C`
+   - Type `y` and press Enter to confirm
+
+2. **Stop Backend Server (停止后端服务器)**:
+   - In the Git Bash window running `python app.py`
+   - Press `Ctrl + C`
+   - The server will stop immediately
+
+3. **Stop TK5 (Optional - if you started it) (停止TK5 - 可选)**:
+   - In the Command Prompt window running TK5
+   - Press `Ctrl + C`
+   - Or simply close the black TK5 window
+   - **Note**: TK5 data is automatically saved
+
 #### 🔧 Troubleshooting (故障排除)
 - **If Node.js doesn't work**: Make sure you restarted your computer after installation
 - **If Git Bash doesn't appear**: Restart your computer and try again
@@ -640,6 +662,42 @@ cd ~/Desktop/test-workflow-nextjs
    - Press Enter
    - **You should now see the Test Workflow website! 🎉**
 
+#### Step 12: How to Stop Everything (如何停止所有服务)
+
+After you're done using the website, you need to properly stop all running services:
+
+使用完网站后，需要正确停止所有运行的服务：
+
+1. **Stop Frontend Server (停止前端服务器)**:
+   - In the Terminal window running `npm run dev`
+   - Press `Ctrl + C`
+   - The server will stop immediately
+
+2. **Stop Backend Server (停止后端服务器)**:
+   - In the Terminal window running `python3 app.py`
+   - Press `Ctrl + C`
+   - The server will stop immediately
+
+3. **Stop TK5 (Optional - if you started it) (停止TK5 - 可选)**:
+   - In the Terminal window running `./mvs`
+   - Press `Ctrl + C`
+   - Type `quit` if prompted
+   - Or simply close the Terminal window
+   - **Note**: TK5 data is automatically saved
+
+4. **Alternative: Force Stop All (强制停止所有服务)**:
+   ```bash
+   # Kill all node processes (if frontend won't stop)
+   killall node
+
+   # Kill all python processes (if backend won't stop)
+   killall python3
+
+   # Check if anything is still using port 3000 or 5001
+   lsof -ti:3000 | xargs kill -9
+   lsof -ti:5001 | xargs kill -9
+   ```
+
 #### 🔧 Troubleshooting (故障排除)
 - **If Homebrew installation fails**: Make sure you have internet connection and try again
 - **If commands are not found**: Close and reopen Terminal, then try again
@@ -674,6 +732,55 @@ Once the website is running, you can:
 5. **Access Mainframe Terminal**:
    - Click "Mainframe Terminal" button for advanced features
    - 点击"Mainframe Terminal"按钮使用高级功能
+
+### 🔄 How to Restart Later (如何重新启动)
+
+If you want to use the website again after stopping everything:
+如果停止所有服务后想重新使用网站：
+
+#### For Windows (Windows用户):
+1. **Navigate to Project**:
+   - Right-click on Desktop → "Git Bash Here"
+   - `cd test-workflow-nextjs`
+
+2. **Start Backend** (Terminal 1):
+   ```bash
+   .venv/Scripts/activate
+   cd backend
+   python app.py
+   ```
+
+3. **Start Frontend** (Terminal 2):
+   ```bash
+   npm run dev
+   ```
+
+4. **Start TK5** (Optional):
+   - Double-click `mvs.bat` in your TK5 folder
+
+#### For Mac (Mac用户):
+1. **Navigate to Project**:
+   ```bash
+   cd ~/Desktop/test-workflow-nextjs
+   ```
+
+2. **Start Backend** (Terminal 1):
+   ```bash
+   source .venv/bin/activate
+   cd backend
+   python3 app.py
+   ```
+
+3. **Start Frontend** (Terminal 2):
+   ```bash
+   npm run dev
+   ```
+
+4. **Start TK5** (Optional):
+   ```bash
+   cd ~/Desktop/TK5*
+   ./mvs
+   ```
 
 ### 🆘 Getting Help (获取帮助)
 
