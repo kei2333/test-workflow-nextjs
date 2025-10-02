@@ -298,8 +298,8 @@ TK5提供本地IBM大型机环境，无需网络连接即可测试。
    - If nothing appears, continue with installation below
 
 2. **Download TK5** (only if not running):
-   - Go to: http://wotho.ethz.ch/tk4-/
-   - Download: `tk4-_v1.00_current.zip`
+   - Go to: https://www.prince-webdesign.nl/tk5
+   - Download the complete TK5 system package
    - This is a large file (~1GB) - be patient!
 
 3. **Install TK5**:
@@ -545,11 +545,14 @@ TK5提供本地IBM大型机环境，无需网络连接即可测试。
    ```
 
 3. **Download TK5** (only if not running):
+   - Go to: https://www.prince-webdesign.nl/tk5
+   - Download the complete TK5 system package to ~/Desktop
+   - Extract the downloaded file
    ```bash
    cd ~/Desktop
-   curl -O http://wotho.ethz.ch/tk4-/tk4-_v1.00_current.zip
-   unzip tk4-_v1.00_current.zip
-   cd tk4-
+   # Extract the downloaded TK5 package (filename may vary)
+   unzip TK5*.zip
+   cd TK5*
    ```
    - This is a large file (~1GB) - be patient!
 
