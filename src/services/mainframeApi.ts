@@ -81,6 +81,34 @@ export interface SessionsResponse {
   sessions: SessionInfo[];
 }
 
+export interface SendFileRequest {
+  session_id: string;
+  local_path: string;
+  mainframe_dataset: string;
+  transfer_mode?: 'ascii' | 'binary';
+}
+
+export interface SendFileResponse {
+  success: boolean;
+  message: string;
+  bytes_transferred?: number;
+  screen_content?: string;
+}
+
+export interface GetFileRequest {
+  session_id: string;
+  mainframe_dataset: string;
+  local_path: string;
+  transfer_mode?: 'ascii' | 'binary';
+}
+
+export interface GetFileResponse {
+  success: boolean;
+  message: string;
+  bytes_received?: number;
+  local_path?: string;
+}
+
 class MainframeApiService {
   /**
    * Check if the backend service is healthy and available
@@ -217,6 +245,72 @@ class MainframeApiService {
       return {
         success: false,
         sessions: [],
+      };
+    }
+  }
+
+  /**
+   * Send file from Windows to Mainframe using IND$FILE
+   */
+  async sendFile(request: SendFileRequest): Promise<SendFileResponse> {
+    try {
+      const response = await fetch(`${BASE_URL}/sendfile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
+
+      return await response.json();
+    } catch (error) {
+      return {
+        success: false,
+        message: `Send file error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+    }
+  }
+
+  /**
+   * Get file from Mainframe to Windows using IND$FILE
+   */
+  async getFile(request: GetFileRequest): Promise<GetFileResponse> {
+    try {
+      const response = await fetch(`${BASE_URL}/getfile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
+
+      return await response.json();
+    } catch (error) {
+      return {
+        success: false,
+        message: `Get file error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+    }
+  }
+
+  /**
+   * Cleanup all active sessions - useful for debugging and preventing connection leaks
+   */
+  async cleanupAllSessions(): Promise<{ success: boolean; message: string; cleaned_count: number }> {
+    try {
+      const response = await fetch(`${BASE_URL}/cleanup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      return await response.json();
+    } catch (error) {
+      return {
+        success: false,
+        message: `Cleanup error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        cleaned_count: 0,
       };
     }
   }

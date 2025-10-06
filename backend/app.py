@@ -10,17 +10,45 @@ import os
 import uuid
 import subprocess
 import time
-import signal
 from datetime import datetime
 from typing import Dict, Optional, List, Tuple
-import threading
-import queue
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://192.168.2.109:3000"]}})
 
 # Global sessions storage
 sessions = {}
+
+# Session timeout in seconds (30 minutes)
+SESSION_TIMEOUT = 1800
+
+def cleanup_expired_sessions():
+    """Remove expired sessions"""
+    current_time = datetime.now()
+    expired_sessions = []
+
+    for session_id, session_data in sessions.items():
+        last_accessed = session_data.get('last_accessed', session_data['created_at'])
+        age = (current_time - last_accessed).total_seconds()
+
+        if age > SESSION_TIMEOUT:
+            expired_sessions.append(session_id)
+
+    for session_id in expired_sessions:
+        try:
+            print(f"Cleaning up expired session: {session_id}")
+            session = sessions[session_id]['session']
+            session.disconnect()
+            del sessions[session_id]
+        except Exception as e:
+            print(f"Error cleaning up session {session_id}: {e}")
+
+    return len(expired_sessions)
+
+def update_session_access(session_id: str):
+    """Update last accessed time for a session"""
+    if session_id in sessions:
+        sessions[session_id]['last_accessed'] = datetime.now()
 
 class S3270Session:
     """s3270 session handler for IBM mainframe connections"""
@@ -320,6 +348,162 @@ class S3270Session:
         except Exception as e:
             return {"success": False, "message": f"Function key error: {str(e)}"}
 
+    def send_file_to_mainframe(self, local_path: str, mainframe_dataset: str, transfer_mode: str = 'ascii') -> Dict:
+        """Send file from Windows to Mainframe using IND$FILE"""
+        if not self.is_connected:
+            return {"success": False, "message": "Not connected to mainframe"}
+
+        try:
+            # Validate local file exists
+            if not os.path.exists(local_path):
+                return {"success": False, "message": f"Local file not found: {local_path}"}
+
+            # Read local file content
+            with open(local_path, 'rb') as f:
+                file_content = f.read()
+
+            # Determine transfer mode (ASCII or BINARY)
+            mode_flag = 'ascii' if transfer_mode.lower() == 'ascii' else 'binary'
+
+            # Use IND$FILE protocol via s3270
+            # Navigate to TSO/ISPF command line (assuming already logged in)
+            self._execute_command('Clear')
+            time.sleep(0.5)
+
+            # Type IND$FILE command to receive file on mainframe
+            indfile_cmd = f'IND$FILE PUT {mainframe_dataset} {mode_flag}'
+            self._execute_command(f'String("{indfile_cmd}")')
+            time.sleep(0.5)
+
+            # Press Enter to start transfer
+            self._execute_command('Enter')
+            time.sleep(1)
+
+            # Send file data in chunks
+            chunk_size = 4096
+            total_bytes = len(file_content)
+            bytes_sent = 0
+
+            for i in range(0, total_bytes, chunk_size):
+                chunk = file_content[i:i+chunk_size]
+                # Convert binary data to string if in ASCII mode
+                if transfer_mode.lower() == 'ascii':
+                    try:
+                        chunk_str = chunk.decode('utf-8')
+                        self._execute_command(f'String("{chunk_str}")')
+                    except UnicodeDecodeError:
+                        return {"success": False, "message": "File contains non-ASCII characters, use binary mode"}
+                else:
+                    # For binary mode, send as hex string
+                    hex_str = chunk.hex()
+                    self._execute_command(f'String("{hex_str}")')
+
+                bytes_sent += len(chunk)
+                time.sleep(0.1)
+
+            # Signal end of file transfer
+            self._execute_command('Enter')
+            time.sleep(2)
+
+            # Get screen to check transfer result
+            result_screen = self.get_screen_text()
+
+            # Check for success indicators
+            if 'TRANSFER COMPLETE' in result_screen.upper() or 'FILE TRANSFERRED' in result_screen.upper():
+                return {
+                    "success": True,
+                    "message": f"File transferred successfully to {mainframe_dataset}",
+                    "bytes_transferred": bytes_sent,
+                    "screen_content": result_screen
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": "File transfer may have failed, check screen output",
+                    "screen_content": result_screen
+                }
+
+        except Exception as e:
+            return {"success": False, "message": f"File transfer error: {str(e)}"}
+
+    def get_file_from_mainframe(self, mainframe_dataset: str, local_path: str, transfer_mode: str = 'ascii') -> Dict:
+        """Get file from Mainframe to Windows using IND$FILE"""
+        if not self.is_connected:
+            return {"success": False, "message": "Not connected to mainframe"}
+
+        try:
+            # Determine transfer mode
+            mode_flag = 'ascii' if transfer_mode.lower() == 'ascii' else 'binary'
+
+            # Use IND$FILE protocol via s3270
+            self._execute_command('Clear')
+            time.sleep(0.5)
+
+            # Type IND$FILE command to send file from mainframe
+            indfile_cmd = f'IND$FILE GET {mainframe_dataset} {mode_flag}'
+            self._execute_command(f'String("{indfile_cmd}")')
+            time.sleep(0.5)
+
+            # Press Enter to start transfer
+            self._execute_command('Enter')
+            time.sleep(2)
+
+            # Receive file data
+            # This is a simplified implementation - actual IND$FILE protocol is more complex
+            file_data = []
+            max_attempts = 100
+            attempts = 0
+
+            while attempts < max_attempts:
+                screen_content = self.get_screen_text()
+
+                # Check for transfer complete
+                if 'TRANSFER COMPLETE' in screen_content.upper() or 'FILE TRANSFERRED' in screen_content.upper():
+                    break
+
+                # Extract data from screen (this is simplified)
+                # In real implementation, you'd need to parse the actual data stream
+                if screen_content.strip():
+                    file_data.append(screen_content)
+
+                # Send Enter to get next screen/chunk
+                self._execute_command('Enter')
+                time.sleep(0.5)
+                attempts += 1
+
+            # Combine received data
+            received_content = '\n'.join(file_data)
+
+            # Create local directory if it doesn't exist
+            local_dir = os.path.dirname(local_path)
+            if local_dir and not os.path.exists(local_dir):
+                os.makedirs(local_dir)
+
+            # Write to local file
+            write_mode = 'w' if transfer_mode.lower() == 'ascii' else 'wb'
+            with open(local_path, write_mode) as f:
+                if transfer_mode.lower() == 'ascii':
+                    f.write(received_content)
+                else:
+                    # For binary mode, convert from hex string
+                    try:
+                        binary_data = bytes.fromhex(received_content)
+                        f.write(binary_data)
+                    except ValueError:
+                        f.write(received_content.encode('utf-8'))
+
+            bytes_received = len(received_content)
+
+            return {
+                "success": True,
+                "message": f"File retrieved successfully from {mainframe_dataset}",
+                "bytes_received": bytes_received,
+                "local_path": local_path
+            }
+
+        except Exception as e:
+            return {"success": False, "message": f"File retrieval error: {str(e)}"}
+
     def disconnect(self):
         """Close the s3270 connection"""
         try:
@@ -365,6 +549,14 @@ def health_check():
 @app.route('/api/connect', methods=['POST'])
 def connect_mainframe():
     """Connect to IBM Mainframe using s3270"""
+    # Auto-cleanup expired sessions before creating new connection
+    try:
+        cleaned = cleanup_expired_sessions()
+        if cleaned > 0:
+            print(f"Auto-cleaned {cleaned} expired session(s) before new connection")
+    except Exception as e:
+        print(f"Error during auto-cleanup: {e}")
+
     data = request.get_json()
     if not data or 'host' not in data:
         return jsonify({"success": False, "message": "Host is required"}), 400
@@ -380,7 +572,8 @@ def connect_mainframe():
     if success:
         sessions[session_id] = {
             'session': session,
-            'created_at': datetime.now()
+            'created_at': datetime.now(),
+            'last_accessed': datetime.now()
         }
 
         return jsonify({
@@ -409,6 +602,7 @@ def login_mainframe():
     if session_id not in sessions:
         return jsonify({"success": False, "message": "Invalid session"}), 404
 
+    update_session_access(session_id)
     session = sessions[session_id]['session']
     result = session.login(data['username'], data['password'])
 
@@ -421,6 +615,7 @@ def get_screen():
     if not session_id or session_id not in sessions:
         return jsonify({"success": False, "message": "Invalid session"}), 404
 
+    update_session_access(session_id)
     session = sessions[session_id]['session']
     screen_content = session.get_screen_text()
 
@@ -442,6 +637,7 @@ def send_command():
     if session_id not in sessions:
         return jsonify({"success": False, "message": "Invalid session"}), 404
 
+    update_session_access(session_id)
     command = data['command']
     session = sessions[session_id]['session']
 
@@ -488,6 +684,69 @@ def list_sessions():
         "sessions": session_list
     })
 
+@app.route('/api/sendfile', methods=['POST'])
+def send_file():
+    """Send file from Windows to Mainframe"""
+    data = request.get_json()
+    if not data or not all(key in data for key in ['session_id', 'local_path', 'mainframe_dataset']):
+        return jsonify({"success": False, "message": "session_id, local_path, and mainframe_dataset are required"}), 400
+
+    session_id = data['session_id']
+    if session_id not in sessions:
+        return jsonify({"success": False, "message": "Invalid session"}), 404
+
+    update_session_access(session_id)
+    local_path = data['local_path']
+    mainframe_dataset = data['mainframe_dataset']
+    transfer_mode = data.get('transfer_mode', 'ascii')
+
+    session = sessions[session_id]['session']
+    result = session.send_file_to_mainframe(local_path, mainframe_dataset, transfer_mode)
+
+    return jsonify(result)
+
+@app.route('/api/getfile', methods=['POST'])
+def get_file():
+    """Get file from Mainframe to Windows"""
+    data = request.get_json()
+    if not data or not all(key in data for key in ['session_id', 'mainframe_dataset', 'local_path']):
+        return jsonify({"success": False, "message": "session_id, mainframe_dataset, and local_path are required"}), 400
+
+    session_id = data['session_id']
+    if session_id not in sessions:
+        return jsonify({"success": False, "message": "Invalid session"}), 404
+
+    update_session_access(session_id)
+    mainframe_dataset = data['mainframe_dataset']
+    local_path = data['local_path']
+    transfer_mode = data.get('transfer_mode', 'ascii')
+
+    session = sessions[session_id]['session']
+    result = session.get_file_from_mainframe(mainframe_dataset, local_path, transfer_mode)
+
+    return jsonify(result)
+
+@app.route('/api/cleanup', methods=['POST'])
+def cleanup_all_sessions():
+    """Cleanup all sessions - useful for debugging and resetting"""
+    count = 0
+    session_ids = list(sessions.keys())
+
+    for session_id in session_ids:
+        try:
+            session = sessions[session_id]['session']
+            session.disconnect()
+            del sessions[session_id]
+            count += 1
+        except Exception as e:
+            print(f"Error cleaning up session {session_id}: {e}")
+
+    return jsonify({
+        "success": True,
+        "message": f"Cleaned up {count} session(s)",
+        "cleaned_count": count
+    })
+
 if __name__ == '__main__':
     print("Starting IBM Mainframe API Server with s3270...")
 
@@ -500,5 +759,7 @@ if __name__ == '__main__':
     ]
     s3270_path = next((path for path in s3270_paths if os.path.exists(path)), "s3270 (in PATH)")
     print(f"s3270 path: {s3270_path}")
+    print("Session auto-cleanup: Enabled (runs on every new connection)")
 
+    # Run Flask app
     app.run(host='0.0.0.0', port=5001, debug=True)

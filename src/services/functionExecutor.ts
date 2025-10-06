@@ -160,6 +160,10 @@ export class FunctionExecutor {
             });
 
             if (loginResponse.success) {
+              // Store session ID in localStorage for use by other functions
+              if (typeof window !== 'undefined' && connectResponse.session_id) {
+                localStorage.setItem('mainframe-session-id', connectResponse.session_id);
+              }
               return `${functionName}: Successfully connected and logged into mainframe using s3270. User ${sanitizedInputs['User Name'] || 'testuser'} authenticated. Session ID: ${connectResponse.session_id.substring(0, 8)}...`;
             } else {
               return `${functionName}: Connection successful but login failed: ${loginResponse.message}`;
@@ -194,10 +198,10 @@ export class FunctionExecutor {
         return await this.executeCreateFile(functionName, sanitizedInputs);
       
       case 'sendfile':
-        return `${functionName}: File transfer completed successfully. Transferred '${sanitizedInputs['Windows File name'] || 'File1'}' from '${sanitizedInputs['Windows File Location'] || 'File location'}' to mainframe file '${sanitizedInputs['Mainframe File Name'] || 'File2(SHIPRA.TEST.FILE2)'}'. Return message for successful data transfer.`;
-      
+        return await this.executeSendFile(functionName, sanitizedInputs);
+
       case 'getfile':
-        return `${functionName}: File import completed successfully. Retrieved '${sanitizedInputs['Mainframe File Name'] || 'File2(SHIPRA.TEST.FILE2)'}' to '${sanitizedInputs['Windows File name'] || 'File1'}' at '${sanitizedInputs['Windows File Location'] || 'File location'}'. Return message for successful data transfer.`;
+        return await this.executeGetFile(functionName, sanitizedInputs);
       
       case 'fileconv':
         return `${functionName}: File conversion completed successfully. Converted text file '${sanitizedInputs['Text file name in windows'] || 'File1'}' to Excel file '${sanitizedInputs['Excel file name'] || 'File3'}' using copybook '${sanitizedInputs['Copybook name in windows'] || 'File2'}'. File converted to excel as per copybook layout.`;
@@ -332,5 +336,91 @@ export class FunctionExecutor {
     content += `# File creation completed successfully\n`;
 
     return content;
+  }
+
+  private static async executeSendFile(
+    functionName: string,
+    inputs: Record<string, string>
+  ): Promise<string> {
+    try {
+      // Extract parameters
+      const windowsFileName = inputs['Windows File name'] || 'File1';
+      const windowsFileLocation = inputs['Windows File Location'] || './';
+      const mainframeFileName = inputs['Mainframe File Name'] || 'SHIPRA.TEST.FILE2';
+
+      // Construct full local path
+      const localPath = `${windowsFileLocation}/${windowsFileName}`;
+
+      // Get active session ID from localStorage
+      let sessionId = '';
+      if (typeof window !== 'undefined') {
+        sessionId = localStorage.getItem('mainframe-session-id') || '';
+      }
+
+      if (!sessionId) {
+        return `${functionName}: Error - No active mainframe session. Please login first.`;
+      }
+
+      // Call the mainframe API to send file
+      const response = await mainframeApi.sendFile({
+        session_id: sessionId,
+        local_path: localPath,
+        mainframe_dataset: mainframeFileName,
+        transfer_mode: 'ascii'
+      });
+
+      if (response.success) {
+        return `${functionName}: File transfer completed successfully. Transferred '${windowsFileName}' from '${windowsFileLocation}' to mainframe dataset '${mainframeFileName}'. Bytes transferred: ${response.bytes_transferred || 0}.`;
+      } else {
+        return `${functionName}: File transfer failed - ${response.message}`;
+      }
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to send file: ${errorMessage}`);
+    }
+  }
+
+  private static async executeGetFile(
+    functionName: string,
+    inputs: Record<string, string>
+  ): Promise<string> {
+    try {
+      // Extract parameters
+      const mainframeFileName = inputs['Mainframe File Name'] || 'SHIPRA.TEST.FILE2';
+      const windowsFileName = inputs['Windows File name'] || 'File1';
+      const windowsFileLocation = inputs['Windows File Location'] || './downloads';
+
+      // Construct full local path
+      const localPath = `${windowsFileLocation}/${windowsFileName}`;
+
+      // Get active session ID from localStorage
+      let sessionId = '';
+      if (typeof window !== 'undefined') {
+        sessionId = localStorage.getItem('mainframe-session-id') || '';
+      }
+
+      if (!sessionId) {
+        return `${functionName}: Error - No active mainframe session. Please login first.`;
+      }
+
+      // Call the mainframe API to get file
+      const response = await mainframeApi.getFile({
+        session_id: sessionId,
+        mainframe_dataset: mainframeFileName,
+        local_path: localPath,
+        transfer_mode: 'ascii'
+      });
+
+      if (response.success) {
+        return `${functionName}: File import completed successfully. Retrieved '${mainframeFileName}' to '${windowsFileName}' at '${windowsFileLocation}'. Bytes received: ${response.bytes_received || 0}.`;
+      } else {
+        return `${functionName}: File retrieval failed - ${response.message}`;
+      }
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to get file: ${errorMessage}`);
+    }
   }
 }
