@@ -14,33 +14,33 @@ import { FunctionExecutor, ExecutionProgress } from '@/services/functionExecutor
 
 export default function Home() {
   // Custom hooks
-  const { 
-    functions, 
-    isLoading, 
-    error: functionsError, 
-    addFunction, 
-    updateFunction, 
-    deleteFunction 
+  const {
+    functions,
+    isLoading,
+    error: functionsError,
+    addFunction,
+    updateFunction,
+    deleteFunction
   } = useFunctions();
-  
-  const { 
-    workflowItems, 
-    addWorkflowItem, 
+
+  const {
+    workflowItems,
+    addWorkflowItem,
     removeWorkflowItem
   } = useWorkflow();
-  
+
   // Removed notification system - using execution log only
-  
-  const { 
-    logs, 
-    addLog, 
-    clearLogs 
+
+  const {
+    logs,
+    addLog,
+    clearLogs
   } = useExecutionLog();
 
   // State for drag and drop
   const [draggedFunction, setDraggedFunction] = useState<string>('');
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-  
+
   // State for modals
   const [showInputModal, setShowInputModal] = useState(false);
   const [showAddFunctionModal, setShowAddFunctionModal] = useState(false);
@@ -48,10 +48,14 @@ export default function Home() {
   const [editingFunction, setEditingFunction] = useState<FunctionData | null>(null);
   const [pendingFunction, setPendingFunction] = useState<FunctionData | null>(null);
   const [pendingInsertIndex, setPendingInsertIndex] = useState<number | null>(null);
-  
+
   // State for workflow execution
   const [executionProgress, setExecutionProgress] = useState<ExecutionProgress | null>(null);
-  
+
+  // State for mainframe connection
+  const [isMainframeConnected, setIsMainframeConnected] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
+
   // Ref for auto-scrolling logs
   const logEndRef = useRef<HTMLDivElement>(null);
 
@@ -68,6 +72,71 @@ export default function Home() {
       logEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [logs]);
+
+  // Check mainframe connection status on mount and when session changes
+  useEffect(() => {
+    const checkConnection = () => {
+      const sessionId = localStorage.getItem('mainframe-session-id');
+      setIsMainframeConnected(!!sessionId);
+    };
+
+    checkConnection();
+
+    // Check periodically
+    const interval = setInterval(checkConnection, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Handle mainframe disconnect
+  const handleMainframeDisconnect = useCallback(async () => {
+    const sessionId = localStorage.getItem('mainframe-session-id');
+    if (!sessionId) {
+      addLog('warning', 'No active mainframe session found');
+      return;
+    }
+
+    setIsDisconnecting(true);
+    addLog('info', 'Disconnecting from mainframe...');
+
+    try {
+      // Import mainframeApi dynamically to avoid circular dependencies
+      const { mainframeApi } = await import('@/services/mainframeApi');
+
+      // Get login type from localStorage to determine if we need to logout first
+      const loginType = localStorage.getItem('mainframe-login-type');
+
+      // For TSO login, perform logout first
+      if (loginType === 'tso') {
+        try {
+          const logoutResult = await mainframeApi.logout(sessionId);
+          if (logoutResult.success) {
+            addLog('success', 'Logged out from TSO session');
+          }
+        } catch (logoutError) {
+          addLog('warning', 'Logout failed, continuing with disconnect');
+        }
+      }
+
+      // Disconnect the session
+      const disconnectResult = await mainframeApi.disconnect(sessionId);
+
+      if (disconnectResult.success) {
+        addLog('success', 'Disconnected from mainframe successfully');
+      } else {
+        addLog('warning', `Disconnect completed: ${disconnectResult.message}`);
+      }
+
+      // Clear session data from localStorage
+      localStorage.removeItem('mainframe-session-id');
+      localStorage.removeItem('mainframe-login-type');
+      setIsMainframeConnected(false);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      addLog('error', `Failed to disconnect: ${errorMessage}`);
+    } finally {
+      setIsDisconnecting(false);
+    }
+  }, [addLog]);
 
   // Drag and drop handlers
   const handleDragStart = useCallback((e: React.DragEvent, functionId: string) => {
@@ -296,16 +365,46 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Mainframe Terminal Button */}
-          <Link
-            href="/mainframe"
-            className="group flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-600 hover:from-blue-700 hover:via-cyan-600 hover:to-teal-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-white/20 backdrop-blur-sm"
-          >
-            <svg className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-            </svg>
-            <span>Mainframe Terminal</span>
-          </Link>
+          {/* Mainframe Controls */}
+          <div className="flex items-center gap-3">
+            {/* Disconnect Button - only show when connected */}
+            {isMainframeConnected && (
+              <button
+                onClick={handleMainframeDisconnect}
+                disabled={isDisconnecting}
+                className="group flex items-center gap-2 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-red-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                title="Disconnect from mainframe"
+              >
+                {isDisconnecting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-red-700 border-t-transparent rounded-full animate-spin"></div>
+                    <span>Disconnecting...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6" />
+                    </svg>
+                    <span>Disconnect</span>
+                  </>
+                )}
+              </button>
+            )}
+
+            {/* Mainframe Terminal Button */}
+            <Link
+              href="/mainframe"
+              className="group flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-600 hover:from-blue-700 hover:via-cyan-600 hover:to-teal-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-white/20 backdrop-blur-sm"
+            >
+              <svg className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+              </svg>
+              <span>Mainframe Terminal</span>
+              {isMainframeConnected && (
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" title="Connected"></div>
+              )}
+            </Link>
+          </div>
         </div>
         
         <div className="flex gap-3 h-[calc(100vh-100px)]" role="main">

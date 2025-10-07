@@ -110,7 +110,7 @@ export const InputConfigModal: React.FC<InputConfigModalProps> = ({
           <div className="space-y-6">
             {functionData.inputs.map((input, index) => (
               <div key={`${input.name}-${index}`} className="space-y-2">
-                <label 
+                <label
                   htmlFor={`input-${index}`}
                   className="block text-base font-semibold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent"
                 >
@@ -119,26 +119,52 @@ export const InputConfigModal: React.FC<InputConfigModalProps> = ({
                     <span className="text-red-500 ml-1">*</span>
                   )}
                 </label>
-                <input
-                  id={`input-${index}`}
-                  type="text"
-                  value={inputValues[input.name] || ''}
-                  onChange={(e) => handleInputChange(input.name, e.target.value)}
-                  placeholder={input.placeholder}
-                  className={`
-                    w-full px-4 py-3 border-2 rounded-xl transition-all duration-200
-                    focus:outline-none focus:scale-[1.02] text-gray-900 placeholder:text-gray-500
-                    ${errors[input.name] 
-                      ? 'border-red-400 focus:border-red-500 bg-red-50 text-red-900' 
-                      : 'border-gray-300 focus:border-blue-400 hover:border-cyan-300 bg-white'
-                    }
-                  `}
-                  maxLength={500}
-                  aria-describedby={errors[input.name] ? `error-${index}` : undefined}
-                  aria-invalid={!!errors[input.name]}
-                />
+
+                {input.type === 'radio' && input.options ? (
+                  <div className="flex gap-4">
+                    {input.options.map((option, optionIndex) => (
+                      <label
+                        key={`${input.name}-option-${optionIndex}`}
+                        className="flex items-center cursor-pointer"
+                      >
+                        <input
+                          type="radio"
+                          name={input.name}
+                          value={option.value}
+                          checked={inputValues[input.name] === option.value}
+                          onChange={(e) => handleInputChange(input.name, e.target.value)}
+                          className="mr-2"
+                        />
+                        <span className="text-sm">
+                          <strong>{option.label}</strong>
+                          {option.description && ` - ${option.description}`}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <input
+                    id={`input-${index}`}
+                    type={input.name.toLowerCase().includes('password') ? 'password' : 'text'}
+                    value={inputValues[input.name] || ''}
+                    onChange={(e) => handleInputChange(input.name, e.target.value)}
+                    placeholder={input.placeholder}
+                    className={`
+                      w-full px-4 py-3 border-2 rounded-xl transition-all duration-200
+                      focus:outline-none focus:scale-[1.02] text-gray-900 placeholder:text-gray-500
+                      ${errors[input.name]
+                        ? 'border-red-400 focus:border-red-500 bg-red-50 text-red-900'
+                        : 'border-gray-300 focus:border-blue-400 hover:border-cyan-300 bg-white'
+                      }
+                    `}
+                    maxLength={500}
+                    aria-describedby={errors[input.name] ? `error-${index}` : undefined}
+                    aria-invalid={!!errors[input.name]}
+                  />
+                )}
+
                 {errors[input.name] && (
-                  <p 
+                  <p
                     id={`error-${index}`}
                     className="text-red-700 text-sm mt-1 font-medium"
                     role="alert"

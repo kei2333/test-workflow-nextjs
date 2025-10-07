@@ -5,12 +5,37 @@
     "description": "Mainframe Connectivity",
     "inputs": [
       {
+        "name": "Host",
+        "placeholder": ""
+      },
+      {
+        "name": "Port",
+        "placeholder": ""
+      },
+      {
+        "name": "Login Type",
+        "placeholder": "standard",
+        "type": "radio",
+        "options": [
+          {
+            "value": "standard",
+            "label": "Standard",
+            "description": "Direct username/password login"
+          },
+          {
+            "value": "tso",
+            "label": "TSO",
+            "description": "IBM TSO login sequence"
+          }
+        ]
+      },
+      {
         "name": "User Name",
-        "placeholder": "XYZ"
+        "placeholder": ""
       },
       {
         "name": "Password",
-        "placeholder": "****"
+        "placeholder": ""
       }
     ]
   },

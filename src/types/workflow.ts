@@ -1,6 +1,12 @@
 export interface FunctionInput {
   name: string;
   placeholder: string;
+  type?: 'text' | 'radio';
+  options?: Array<{
+    value: string;
+    label: string;
+    description?: string;
+  }>;
 }
 
 export interface FunctionData {

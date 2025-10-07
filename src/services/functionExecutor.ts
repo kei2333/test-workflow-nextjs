@@ -142,29 +142,40 @@ export class FunctionExecutor {
     switch (functionId) {
       case 'logonispf':
         try {
-          // Get current system configuration
-          const systemConfig = getCurrentSystem();
+          // Get connection parameters from user input
+          const host = sanitizedInputs['Host'] || '';
+          const portStr = sanitizedInputs['Port'] || '23';
+          const port = parseInt(portStr) || 23;
+          const loginType = sanitizedInputs['Login Type'] || 'standard';
+          const username = sanitizedInputs['User Name'] || '';
+          const password = sanitizedInputs['Password'] || '';
+
+          if (!host || !username || !password) {
+            return `${functionName}: Error - Host, User Name, and Password are required`;
+          }
 
           // First connect to mainframe using s3270
           const connectResponse = await mainframeApi.connect({
-            host: systemConfig.host,
-            port: systemConfig.port
+            host,
+            port
           });
 
           if (connectResponse.success && connectResponse.session_id) {
-            // Then login with provided credentials
+            // Then login with provided credentials and login type
             const loginResponse = await mainframeApi.login({
               session_id: connectResponse.session_id,
-              username: sanitizedInputs['User Name'] || systemConfig.defaultUsername,
-              password: sanitizedInputs['Password'] || systemConfig.defaultPassword
+              username,
+              password,
+              login_type: loginType as 'standard' | 'tso'
             });
 
             if (loginResponse.success) {
-              // Store session ID in localStorage for use by other functions
+              // Store session ID and login type in localStorage for use by other functions
               if (typeof window !== 'undefined' && connectResponse.session_id) {
                 localStorage.setItem('mainframe-session-id', connectResponse.session_id);
+                localStorage.setItem('mainframe-login-type', loginType);
               }
-              return `${functionName}: Successfully connected and logged into mainframe using s3270. User ${sanitizedInputs['User Name'] || 'testuser'} authenticated. Session ID: ${connectResponse.session_id.substring(0, 8)}...`;
+              return `${functionName}: Successfully connected to ${host}:${port} and logged in using ${loginType.toUpperCase()} login. User ${username} authenticated. Session ID: ${connectResponse.session_id.substring(0, 8)}...`;
             } else {
               return `${functionName}: Connection successful but login failed: ${loginResponse.message}`;
             }
