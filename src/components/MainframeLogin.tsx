@@ -25,22 +25,27 @@ export const MainframeLogin: React.FC<MainframeLoginProps> = ({
   } = useMainframe();
 
   // Local state
-  const [systemType, setSystemType] = useState<'pub400' | 'tk5'>('pub400');
+  const [systemType, setSystemType] = useState<'pub400' | 'tk5' | 'custom'>('custom');
   const [connectionForm, setConnectionForm] = useState({
-    host: 'pub400.com',
+    host: '',
     port: 23,
   });
 
   const [loginForm, setLoginForm] = useState({
-    username: 'pub400',
-    password: 'pub400',
+    username: '',
+    password: '',
   });
+
+  const [loginType, setLoginType] = useState<'standard' | 'tso'>('standard');
 
   // Update connection details when system type changes
   useEffect(() => {
     if (systemType === 'tk5') {
       setConnectionForm({ host: 'localhost', port: 3270 });
       setLoginForm({ username: 'HERC01', password: 'CUL8TR' });
+    } else if (systemType === 'custom') {
+      setConnectionForm({ host: '', port: 23 });
+      setLoginForm({ username: '', password: '' });
     } else {
       setConnectionForm({ host: 'pub400.com', port: 23 });
       setLoginForm({ username: 'pub400', password: 'pub400' });
@@ -85,12 +90,13 @@ export const MainframeLogin: React.FC<MainframeLoginProps> = ({
       session_id: state.sessionId,
       username: loginForm.username.trim(),
       password: loginForm.password.trim(),
+      login_type: loginType,
     });
 
     if (result.success) {
       setLoginForm(prev => ({ ...prev, password: '' })); // Clear password
     }
-  }, [login, state.sessionId, loginForm]);
+  }, [login, state.sessionId, loginForm, loginType]);
 
   // Handle command sending
   const handleSendCommand = useCallback(async () => {
@@ -105,9 +111,16 @@ export const MainframeLogin: React.FC<MainframeLoginProps> = ({
   // Handle disconnect
   const handleDisconnect = useCallback(async () => {
     await disconnect();
-    setLoginForm({ username: 'pub400', password: 'pub400' });
+    // Reset to current system type defaults
+    if (systemType === 'tk5') {
+      setLoginForm({ username: 'HERC01', password: 'CUL8TR' });
+    } else if (systemType === 'custom') {
+      setLoginForm({ username: '', password: '' });
+    } else {
+      setLoginForm({ username: 'pub400', password: 'pub400' });
+    }
     setCommandInput('');
-  }, [disconnect]);
+  }, [disconnect, systemType]);
 
   // Keyboard event handling
   const handleKeyDown = (e: React.KeyboardEvent, action: () => void) => {
@@ -219,13 +232,25 @@ export const MainframeLogin: React.FC<MainframeLoginProps> = ({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Mainframe System
                 </label>
-                <div className="flex gap-4">
+                <div className="flex flex-col gap-3">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      value="custom"
+                      checked={systemType === 'custom'}
+                      onChange={(e) => setSystemType(e.target.value as 'pub400' | 'tk5' | 'custom')}
+                      className="mr-2"
+                    />
+                    <span className="text-sm">
+                      <strong>Custom Mainframe</strong> - Enter connection details manually
+                    </span>
+                  </label>
                   <label className="flex items-center">
                     <input
                       type="radio"
                       value="pub400"
                       checked={systemType === 'pub400'}
-                      onChange={(e) => setSystemType(e.target.value as 'pub400' | 'tk5')}
+                      onChange={(e) => setSystemType(e.target.value as 'pub400' | 'tk5' | 'custom')}
                       className="mr-2"
                     />
                     <span className="text-sm">
@@ -237,7 +262,7 @@ export const MainframeLogin: React.FC<MainframeLoginProps> = ({
                       type="radio"
                       value="tk5"
                       checked={systemType === 'tk5'}
-                      onChange={(e) => setSystemType(e.target.value as 'pub400' | 'tk5')}
+                      onChange={(e) => setSystemType(e.target.value as 'pub400' | 'tk5' | 'custom')}
                       className="mr-2"
                     />
                     <span className="text-sm">
@@ -300,6 +325,39 @@ export const MainframeLogin: React.FC<MainframeLoginProps> = ({
           {state.isConnected && !state.isLoggedIn && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-800">User Authentication</h3>
+
+              {/* Login Type Selector */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Login Flow Type
+                </label>
+                <div className="flex gap-4">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      value="standard"
+                      checked={loginType === 'standard'}
+                      onChange={(e) => setLoginType(e.target.value as 'standard' | 'tso')}
+                      className="mr-2"
+                    />
+                    <span className="text-sm">
+                      <strong>Standard</strong> - Direct username/password login
+                    </span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      value="tso"
+                      checked={loginType === 'tso'}
+                      onChange={(e) => setLoginType(e.target.value as 'standard' | 'tso')}
+                      className="mr-2"
+                    />
+                    <span className="text-sm">
+                      <strong>TSO</strong> - IBM TSO login sequence
+                    </span>
+                  </label>
+                </div>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>

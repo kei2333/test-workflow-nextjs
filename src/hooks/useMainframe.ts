@@ -15,6 +15,7 @@ const initialState: MainframeState = {
   isLoggedIn: false,
   isLoggingIn: false,
   username: null,
+  loginType: null,
   screenContent: '',
   lastActivity: null,
   error: null,
@@ -92,6 +93,7 @@ export function useMainframe() {
           isLoggedIn: true,
           isLoggingIn: false,
           username: credentials.username,
+          loginType: credentials.login_type || 'standard',
           screenContent: result.screen_content || '',
           lastActivity: new Date().toISOString(),
         }));
@@ -176,6 +178,29 @@ export function useMainframe() {
     }
 
     try {
+      // For TSO login type, perform proper logout first
+      if (state.loginType === 'tso' && state.isLoggedIn) {
+        try {
+          const logoutResult = await mainframeApi.logout(state.sessionId);
+          console.log('Logout result:', logoutResult);
+
+          // Update screen content with logout result
+          if (logoutResult.success && logoutResult.screen_content) {
+            setState(prev => ({
+              ...prev,
+              screenContent: logoutResult.screen_content || prev.screenContent,
+              lastActivity: new Date().toISOString(),
+            }));
+
+            // Wait a bit to let user see the logout screen
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        } catch (logoutError) {
+          console.warn('Logout failed, continuing with disconnect:', logoutError);
+        }
+      }
+
+      // Then disconnect the session
       const result = await mainframeApi.disconnect(state.sessionId);
 
       // Reset state regardless of API result
@@ -188,7 +213,7 @@ export function useMainframe() {
       const errorMessage = error instanceof Error ? error.message : 'Disconnect failed';
       return { success: false, message: errorMessage };
     }
-  }, [state.sessionId]);
+  }, [state.sessionId, state.loginType, state.isLoggedIn]);
 
   // Clear error
   const clearError = useCallback(() => {

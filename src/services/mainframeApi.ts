@@ -33,6 +33,7 @@ export interface LoginRequest {
   session_id: string;
   username: string;
   password: string;
+  login_type?: 'standard' | 'tso';
 }
 
 export interface LoginResponse {
@@ -208,6 +209,28 @@ class MainframeApiService {
       return {
         success: false,
         message: `Command error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+    }
+  }
+
+  /**
+   * Logout from mainframe (proper logout sequence for real mainframe)
+   */
+  async logout(sessionId: string): Promise<LoginResponse> {
+    try {
+      const response = await fetch(`${BASE_URL}/logout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ session_id: sessionId }),
+      });
+
+      return await response.json();
+    } catch (error) {
+      return {
+        success: false,
+        message: `Logout error: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }

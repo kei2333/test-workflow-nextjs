@@ -16,6 +16,7 @@ export interface MainframeState {
   isLoggedIn: boolean;
   isLoggingIn: boolean;
   username: string | null;
+  loginType: 'standard' | 'tso' | null;
 
   // Screen content
   screenContent: string;
@@ -37,6 +38,7 @@ export interface LoginCredentials {
   session_id: string;
   username: string;
   password: string;
+  login_type?: 'standard' | 'tso';
 }
 
 export interface MainframeCommand {

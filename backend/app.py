@@ -10,6 +10,7 @@ import os
 import uuid
 import subprocess
 import time
+import sys
 from datetime import datetime
 from typing import Dict, Optional, List, Tuple
 
@@ -59,6 +60,7 @@ class S3270Session:
         self.port = None
         self.is_connected = False
         self.is_logged_in = False
+        self.login_type = 'standard'  # 'standard' or 'tso'
         self.created_at = datetime.now()
         self.process = None
         self.screen_buffer = ""
@@ -188,12 +190,15 @@ class S3270Session:
         screen_content = self._execute_command('Ascii')
         return screen_content
 
-    def login(self, username: str, password: str) -> Dict:
+    def login(self, username: str, password: str, login_type: str = 'standard') -> Dict:
         """Perform login to mainframe"""
         if not self.is_connected:
             return {"success": False, "message": "Not connected to mainframe"}
 
         try:
+            # Store login type for logout
+            self.login_type = login_type
+
             # Get current screen to see login prompt
             initial_screen = self.get_screen_text()
             # Safe print with encoding handling
@@ -202,8 +207,96 @@ class S3270Session:
             except UnicodeEncodeError:
                 print("DEBUG: Initial screen content received (contains special characters)")
 
+            # TSO-based login flow for IBM mainframes
+            if login_type == 'tso':
+                # Step 1: Wait for initial screen
+                time.sleep(2)
+
+                # Get initial screen
+                screen_1 = self.get_screen_text()
+                try:
+                    print(f"DEBUG: Step 1 - Initial screen:\n{screen_1}")
+                except UnicodeEncodeError:
+                    print("DEBUG: Step 1 - Initial screen received")
+
+                # Step 2: Type TSO and press Enter
+                self._execute_command('String("TSO")')
+                time.sleep(0.5)
+                self._execute_command('Enter')
+                time.sleep(3)  # Wait for screen to update
+
+                # Get screen after TSO
+                screen_2 = self.get_screen_text()
+                try:
+                    print(f"DEBUG: Step 2 - After TSO screen:\n{screen_2}")
+                except UnicodeEncodeError:
+                    print("DEBUG: Step 2 - After TSO screen received")
+
+                # Step 3: Type username and press Enter
+                self._execute_command(f'String("{username}")')
+                time.sleep(0.5)
+                self._execute_command('Enter')
+                time.sleep(3)  # Wait for screen to update
+
+                # Get screen after username
+                screen_3 = self.get_screen_text()
+                try:
+                    print(f"DEBUG: Step 3 - After username screen:\n{screen_3}")
+                except UnicodeEncodeError:
+                    print("DEBUG: Step 3 - After username screen received")
+
+                # Step 4: Type password and press Enter
+                self._execute_command(f'String("{password}")')
+                time.sleep(0.5)
+                self._execute_command('Enter')
+                time.sleep(3)  # Wait for screen to update
+
+                # Get screen after password
+                screen_4 = self.get_screen_text()
+                try:
+                    print(f"DEBUG: Step 4 - After password screen:\n{screen_4}")
+                except UnicodeEncodeError:
+                    print("DEBUG: Step 4 - After password screen received")
+
+                # Step 5: Press Enter (for /)
+                self._execute_command('Enter')
+                time.sleep(2)  # Wait for screen to update
+
+                # Get screen after first Enter
+                screen_5 = self.get_screen_text()
+                try:
+                    print(f"DEBUG: Step 5 - After first Enter screen:\n{screen_5}")
+                except UnicodeEncodeError:
+                    print("DEBUG: Step 5 - After first Enter screen received")
+
+                # Step 6: Press Enter again
+                self._execute_command('Enter')
+                time.sleep(2)  # Wait for screen to update
+
+                # Get screen after second Enter
+                screen_6 = self.get_screen_text()
+                try:
+                    print(f"DEBUG: Step 6 - After second Enter screen:\n{screen_6}")
+                except UnicodeEncodeError:
+                    print("DEBUG: Step 6 - After second Enter screen received")
+
+                # Step 7: Type ISPF and press Enter (final step for complete connection)
+                self._execute_command('String("ISPF")')
+                time.sleep(0.5)
+                self._execute_command('Enter')
+                time.sleep(3)  # Wait for ISPF to load
+
+                # Get screen after ISPF
+                screen_7 = self.get_screen_text()
+                try:
+                    print(f"DEBUG: Step 7 - After ISPF screen:\n{screen_7}")
+                    sys.stdout.flush()
+                except UnicodeEncodeError:
+                    print("DEBUG: Step 7 - After ISPF screen received")
+                    sys.stdout.flush()
+
             # TK5 specific login handling
-            if self.host == 'localhost' and self.port == 3270:
+            elif self.host == 'localhost' and self.port == 3270:
                 # For TK5, try different approach - it might need different login sequence
                 # Type username directly without clearing first
                 self._execute_command(f'String("{username}")')
@@ -504,6 +597,76 @@ class S3270Session:
         except Exception as e:
             return {"success": False, "message": f"File retrieval error: {str(e)}"}
 
+    def logout(self) -> Dict:
+        """Logout from mainframe (F3 + LOGOFF sequence for TSO login)"""
+        if not self.is_connected:
+            return {"success": False, "message": "Not connected to mainframe"}
+
+        try:
+            # TSO login type - use F3/LOGOFF sequence
+            if self.login_type == 'tso':
+                # Get screen before logout
+                screen_before = self.get_screen_text()
+                try:
+                    print(f"DEBUG: Logout Step 0 - Before logout:\n{screen_before}")
+                    sys.stdout.flush()
+                except UnicodeEncodeError:
+                    print("DEBUG: Logout Step 0 - Before logout screen received")
+                    sys.stdout.flush()
+
+                # Step 1: Press F3
+                self._execute_command('PF(3)')
+                time.sleep(3)  # Wait for screen to update
+
+                # Get screen after F3
+                screen_1 = self.get_screen_text()
+                try:
+                    print(f"DEBUG: Logout Step 1 - After F3 screen:\n{screen_1}")
+                    sys.stdout.flush()
+                except UnicodeEncodeError:
+                    print("DEBUG: Logout Step 1 - After F3 screen received")
+                    sys.stdout.flush()
+
+                # Check if READY appears
+                if 'READY' in screen_1.upper():
+                    # Step 2: Type LOGOFF and press Enter
+                    self._execute_command('String("LOGOFF")')
+                    time.sleep(0.5)
+                    self._execute_command('Enter')
+                    time.sleep(3)  # Wait for screen to update
+
+                    # Get final screen
+                    screen_2 = self.get_screen_text()
+                    try:
+                        print(f"DEBUG: Logout Step 2 - After LOGOFF screen:\n{screen_2}")
+                        sys.stdout.flush()
+                    except UnicodeEncodeError:
+                        print("DEBUG: Logout Step 2 - After LOGOFF screen received")
+                        sys.stdout.flush()
+
+                    self.is_logged_in = False
+                    return {
+                        "success": True,
+                        "message": "Logout successful",
+                        "screen_content": screen_2
+                    }
+                else:
+                    return {
+                        "success": False,
+                        "message": "READY not found after F3",
+                        "screen_content": screen_1
+                    }
+            else:
+                # For other systems, just mark as logged out
+                self.is_logged_in = False
+                return {
+                    "success": True,
+                    "message": "Logout completed"
+                }
+
+        except Exception as e:
+            return {"success": False, "message": f"Logout error: {str(e)}"}
+
     def disconnect(self):
         """Close the s3270 connection"""
         try:
@@ -604,7 +767,8 @@ def login_mainframe():
 
     update_session_access(session_id)
     session = sessions[session_id]['session']
-    result = session.login(data['username'], data['password'])
+    login_type = data.get('login_type', 'standard')
+    result = session.login(data['username'], data['password'], login_type)
 
     return jsonify(result)
 
@@ -646,6 +810,23 @@ def send_command():
         result = session.send_function_key(command)
     else:
         result = session.send_command(command)
+
+    return jsonify(result)
+
+@app.route('/api/logout', methods=['POST'])
+def logout_mainframe():
+    """Logout from mainframe"""
+    data = request.get_json()
+    if not data or 'session_id' not in data:
+        return jsonify({"success": False, "message": "session_id is required"}), 400
+
+    session_id = data['session_id']
+    if session_id not in sessions:
+        return jsonify({"success": False, "message": "Invalid session"}), 404
+
+    update_session_access(session_id)
+    session = sessions[session_id]['session']
+    result = session.logout()
 
     return jsonify(result)
 
