@@ -13,8 +13,10 @@
     "test:ui:debug": "playwright test --debug",
     "test:mainframe-ui": "playwright test test-mainframe-ui.spec.js --headed",
     "test:workflow-ui": "playwright test test-workflow-ui.spec.js --headed",
-    "test:all": "playwright test test-all.spec.js --headed",
-    "test:all:headless": "playwright test test-all.spec.js"
+  "test:all": "node ./scripts/run-tests-with-servers.js --headed",
+  "test:all:headless": "node ./scripts/run-tests-with-servers.js",
+  "playwright:install": "npx playwright install",
+  "postinstall": "npx playwright install"
   },
   "dependencies": {
     "react": "19.1.0",
@@ -26,10 +28,11 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
+  "@tailwindcss/postcss": "^4",
     "tailwindcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "15.4.5",
     "@eslint/eslintrc": "^3"
+  ,"@playwright/test": "^1.40.0"
   }
 }

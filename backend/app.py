@@ -71,7 +71,8 @@ class S3270Session:
         try:
             # Determine s3270 executable path based on OS
             s3270_paths = [
-                r"C:\Program Files\wc3270\s3270.exe",  # Windows
+                r"C:\Program Files\wc3270\s3270.exe",  # Windows wc3270
+                r"C:\Program Files (x86)\wc3270\s3270.exe",  # Windows wc3270 x86
                 "/opt/homebrew/bin/s3270",              # macOS Homebrew
                 "/usr/bin/s3270",                       # Linux
                 "/usr/local/bin/s3270",                 # Alternative
@@ -86,7 +87,7 @@ class S3270Session:
                     s3270_exe,
                     '-model', '3278-2',   # Use older 3278 model for TK5
                     '-script',            # Enable scripting mode
-                    '-connecttimeout', '30',  # Longer timeout for TK5
+                    '-connecttimeout', '180',  # 3 minutes timeout for TK5
                     '-codepage', 'cp037', # Use EBCDIC code page
                     f'{host}:{port}'
                 ]
@@ -96,6 +97,7 @@ class S3270Session:
                     s3270_exe,
                     '-model', '3279-4',  # 3270 model 4 (43x80)
                     '-script',           # Enable scripting mode
+                    '-connecttimeout', '180',  # 3 minutes timeout for slow connections
                     f'{host}:{port}'
                 ]
 
@@ -110,8 +112,8 @@ class S3270Session:
                 bufsize=0
             )
 
-            # Wait a moment for connection to establish
-            time.sleep(2)
+            # Wait longer for slow connections to establish
+            time.sleep(5)
 
             # Check if process is still running (successful connection)
             if self.process.poll() is None:
@@ -119,8 +121,8 @@ class S3270Session:
                 self.port = port
                 self.is_connected = True
 
-                # Get initial screen content with longer timeout for TK5
-                timeout = 30 if host == 'localhost' and port == 3270 else 10
+                # Get initial screen content with much longer timeout for slow connections
+                timeout = 60 if host == 'localhost' and port == 3270 else 30
                 initial_screen = self._execute_command('Ascii', timeout)
 
                 return True, f"Successfully connected to {host}:{port} using s3270"
@@ -131,7 +133,7 @@ class S3270Session:
         except Exception as e:
             return False, f"Connection error: {str(e)}"
 
-    def _send_command(self, command: str, timeout: int = 10) -> Dict[str, str]:
+    def _send_command(self, command: str, timeout: int = 30) -> Dict[str, str]:
         """Send command to s3270 process and get response"""
         if not self.process or self.process.poll() is not None:
             return {"status": "error", "data": "Connection lost"}
@@ -178,7 +180,7 @@ class S3270Session:
         except Exception as e:
             return {"status": "error", "data": f"Command error: {str(e)}"}
 
-    def _execute_command(self, command: str, timeout: int = 10) -> str:
+    def _execute_command(self, command: str, timeout: int = 30) -> str:
         """Execute a command and return just the data"""
         result = self._send_command(command, timeout)
         if result["status"] == "error":
@@ -221,9 +223,9 @@ class S3270Session:
 
                 # Step 2: Type TSO and press Enter
                 self._execute_command('String("TSO")')
-                time.sleep(0.5)
+                time.sleep(2.0)
                 self._execute_command('Enter')
-                time.sleep(3)  # Wait for screen to update
+                time.sleep(15)  # Wait much longer for slow TSO response
 
                 # Get screen after TSO
                 screen_2 = self.get_screen_text()
@@ -234,9 +236,9 @@ class S3270Session:
 
                 # Step 3: Type username and press Enter
                 self._execute_command(f'String("{username}")')
-                time.sleep(0.5)
+                time.sleep(2.0)
                 self._execute_command('Enter')
-                time.sleep(3)  # Wait for screen to update
+                time.sleep(15)  # Wait much longer for username processing
 
                 # Get screen after username
                 screen_3 = self.get_screen_text()
@@ -247,9 +249,9 @@ class S3270Session:
 
                 # Step 4: Type password and press Enter
                 self._execute_command(f'String("{password}")')
-                time.sleep(0.5)
+                time.sleep(2.0)
                 self._execute_command('Enter')
-                time.sleep(3)  # Wait for screen to update
+                time.sleep(20)  # Wait much longer for authentication
 
                 # Get screen after password
                 screen_4 = self.get_screen_text()
@@ -260,7 +262,7 @@ class S3270Session:
 
                 # Step 5: Press Enter (for /)
                 self._execute_command('Enter')
-                time.sleep(2)  # Wait for screen to update
+                time.sleep(10)  # Wait much longer for screen to update
 
                 # Get screen after first Enter
                 screen_5 = self.get_screen_text()
@@ -271,7 +273,7 @@ class S3270Session:
 
                 # Step 6: Press Enter again
                 self._execute_command('Enter')
-                time.sleep(2)  # Wait for screen to update
+                time.sleep(10)  # Wait much longer for screen to update
 
                 # Get screen after second Enter
                 screen_6 = self.get_screen_text()
@@ -282,9 +284,9 @@ class S3270Session:
 
                 # Step 7: Type ISPF and press Enter (final step for complete connection)
                 self._execute_command('String("ISPF")')
-                time.sleep(0.5)
+                time.sleep(2.0)
                 self._execute_command('Enter')
-                time.sleep(3)  # Wait for ISPF to load
+                time.sleep(30)  # Wait very long for ISPF to load on very slow systems
 
                 # Get screen after ISPF
                 screen_7 = self.get_screen_text()

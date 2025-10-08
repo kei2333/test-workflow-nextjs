@@ -10,9 +10,9 @@ module.exports = defineConfig({
   testMatch: '**/*.spec.js',
 
   // 超时配置
-  timeout: 120000, // 2 分钟（TSO 登录很慢）
+  timeout: 300000, // 5 分钟（大型机连接可能很慢）
   expect: {
-    timeout: 10000 // expect 超时 10 秒
+    timeout: 30000 // expect 超时 30 秒
   },
 
   // 失败后重试
