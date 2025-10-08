@@ -44,8 +44,9 @@ export const MainframeLogin: React.FC<MainframeLoginProps> = ({
       setConnectionForm({ host: 'localhost', port: 3270 });
       setLoginForm({ username: 'HERC01', password: 'CUL8TR' });
     } else if (systemType === 'custom') {
-      setConnectionForm({ host: '', port: 23 });
-      setLoginForm({ username: '', password: '' });
+      // Keep current values when switching to custom (they might be from config file)
+      // setConnectionForm({ host: '', port: 23 });
+      // setLoginForm({ username: '', password: '' });
     } else {
       setConnectionForm({ host: 'pub400.com', port: 23 });
       setLoginForm({ username: 'pub400', password: 'pub400' });
@@ -62,6 +63,37 @@ export const MainframeLogin: React.FC<MainframeLoginProps> = ({
   useEffect(() => {
     checkServiceAvailability().then(setServiceAvailable);
   }, [checkServiceAvailability]);
+
+  // Load configuration on component mount
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const response = await fetch('/api/config');
+        if (response.ok) {
+          const configData = await response.json();
+          if (configData.mainframe) {
+            // Use config values if available
+            setConnectionForm({
+              host: configData.mainframe.host || '',
+              port: configData.mainframe.port || 23,
+            });
+            setLoginForm({
+              username: configData.mainframe.username || '',
+              password: configData.mainframe.password || '',
+            });
+            setLoginType(configData.mainframe.loginType || 'standard');
+            console.log('Loaded config from test-config.json');
+          }
+        } else {
+          console.log('No test-config.json found, using defaults');
+        }
+      } catch (error) {
+        console.log('Failed to load config, using defaults:', error);
+      }
+    };
+    
+    loadConfig();
+  }, []);
 
   // Notify parent component of connection status changes
   useEffect(() => {
@@ -115,7 +147,8 @@ export const MainframeLogin: React.FC<MainframeLoginProps> = ({
     if (systemType === 'tk5') {
       setLoginForm({ username: 'HERC01', password: 'CUL8TR' });
     } else if (systemType === 'custom') {
-      setLoginForm({ username: '', password: '' });
+      // Keep current values when disconnecting (they might be from config file)
+      // setLoginForm({ username: '', password: '' });
     } else {
       setLoginForm({ username: 'pub400', password: 'pub400' });
     }
