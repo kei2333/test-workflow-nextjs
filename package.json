@@ -6,7 +6,15 @@
     "dev": "next dev -H 0.0.0.0",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:api": "node test-mainframe.js",
+    "test:ui": "playwright test --grep-invert test-all",
+    "test:ui:headed": "playwright test --headed --grep-invert test-all",
+    "test:ui:debug": "playwright test --debug",
+    "test:mainframe-ui": "playwright test test-mainframe-ui.spec.js --headed",
+    "test:workflow-ui": "playwright test test-workflow-ui.spec.js --headed",
+    "test:all": "playwright test test-all.spec.js --headed",
+    "test:all:headless": "playwright test test-all.spec.js"
   },
   "dependencies": {
     "react": "19.1.0",

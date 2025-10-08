@@ -52,3 +52,9 @@ nul
 
 # Playwright MCP temporary files
 .playwright-mcp/
+
+# Test configuration with credentials
+test-config.json
+test-logs/
+playwright-report/
+test-results/
