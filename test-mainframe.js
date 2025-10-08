@@ -327,7 +327,7 @@ class MainframeTest {
 
     if (!results.backendHealth) {
       this.logger.log('ERROR', '\n后端服务不可用，测试终止');
-      await this.saveLogs();
+      await this.logger.saveLogs();
       return results;
     }
 
