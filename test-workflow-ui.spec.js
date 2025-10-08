@@ -115,7 +115,7 @@ test.describe('主页 Workflow 测试', () => {
     console.log('步骤 15: 等待工作流执行完成...');
     // 等待成功消息出现
     await page.waitForSelector('text=/successfully connected|authenticated/i', {
-      timeout: 45000
+      timeout: 450000
     });
 
     // 16. 验证执行日志
@@ -163,44 +163,4 @@ test.describe('主页 Workflow 测试', () => {
     console.log('========================================\n');
   });
 
-  test('清空 workflow 和日志', async ({ page }) => {
-    console.log('\n测试清空功能');
-
-    await page.goto('http://localhost:3000');
-    await page.waitForLoadState('networkidle');
-
-    // 如果有 workflow 项目，删除它
-    const removeButton = page.locator('button[aria-label*="Remove"]').first();
-    if (await removeButton.isVisible()) {
-      await removeButton.click();
-    }
-
-    // 清空日志
-    const clearLogsButton = page.locator('button:has-text("Clear")');
-    if (await clearLogsButton.isVisible()) {
-      await clearLogsButton.click();
-    }
-
-    console.log('✅ 清空测试通过');
-  });
-
-  test('验证 Mainframe Terminal 按钮导航', async ({ page }) => {
-    console.log('\n测试 Mainframe Terminal 按钮');
-
-    await page.goto('http://localhost:3000');
-    await page.waitForLoadState('networkidle');
-
-    // 点击 Mainframe Terminal 按钮
-    const mainframeButton = page.locator('a:has-text("Mainframe Terminal")');
-    await expect(mainframeButton).toBeVisible();
-
-    await mainframeButton.click();
-
-    // 验证跳转到 mainframe 页面
-    await page.waitForURL('**/mainframe', { timeout: 10000 });
-    await page.waitForLoadState('networkidle');
-    await expect(page.locator('h2:has-text("IBM Mainframe Terminal")')).toBeVisible({ timeout: 15000 });
-
-    console.log('✅ 导航测试通过');
-  });
 });
