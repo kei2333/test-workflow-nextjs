@@ -110,6 +110,18 @@ export interface GetFileResponse {
   local_path?: string;
 }
 
+export interface SubmitJclRequest {
+  session_id: string;
+  jcl_dataset_name: string;
+}
+
+export interface SubmitJclResponse {
+  success: boolean;
+  message: string;
+  job_id?: string;
+  screen_content?: string;
+}
+
 class MainframeApiService {
   /**
    * Check if the backend service is healthy and available
@@ -312,6 +324,28 @@ class MainframeApiService {
       return {
         success: false,
         message: `Get file error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+    }
+  }
+
+  /**
+   * Submit JCL job from ISPF main menu
+   */
+  async submitJcl(request: SubmitJclRequest): Promise<SubmitJclResponse> {
+    try {
+      const response = await fetch(`${BASE_URL}/submit_jcl`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
+
+      return await response.json();
+    } catch (error) {
+      return {
+        success: false,
+        message: `Submit JCL error: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }

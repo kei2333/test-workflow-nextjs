@@ -213,7 +213,10 @@ export class FunctionExecutor {
 
       case 'getfile':
         return await this.executeGetFile(functionName, sanitizedInputs);
-      
+
+      case 'submitjcl':
+        return await this.executeSubmitJcl(functionName, sanitizedInputs);
+
       case 'fileconv':
         return `${functionName}: File conversion completed successfully. Converted text file '${sanitizedInputs['Text file name in windows'] || 'File1'}' to Excel file '${sanitizedInputs['Excel file name'] || 'File3'}' using copybook '${sanitizedInputs['Copybook name in windows'] || 'File2'}'. File converted to excel as per copybook layout.`;
       
@@ -432,6 +435,43 @@ export class FunctionExecutor {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Failed to get file: ${errorMessage}`);
+    }
+  }
+
+  private static async executeSubmitJcl(
+    functionName: string,
+    inputs: Record<string, string>
+  ): Promise<string> {
+    try {
+      // Extract parameters
+      const jclDatasetName = inputs['JCL Dataset Name'] || 'TRA026.TEST.JCL(FILECR)';
+
+      // Get active session ID from localStorage
+      let sessionId = '';
+      if (typeof window !== 'undefined') {
+        sessionId = localStorage.getItem('mainframe-session-id') || '';
+      }
+
+      if (!sessionId) {
+        return `${functionName}: Error - No active mainframe session. Please login with LogonISPF first.`;
+      }
+
+      // Call the mainframe API to submit JCL
+      const response = await mainframeApi.submitJcl({
+        session_id: sessionId,
+        jcl_dataset_name: jclDatasetName
+      });
+
+      if (response.success) {
+        const jobIdInfo = response.job_id ? ` Job ID: ${response.job_id}` : '';
+        return `${functionName}: ${response.message}${jobIdInfo}. JCL dataset '${jclDatasetName}' submitted successfully.`;
+      } else {
+        return `${functionName}: JCL submission failed - ${response.message}`;
+      }
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to submit JCL: ${errorMessage}`);
     }
   }
 }

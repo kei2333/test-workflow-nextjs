@@ -599,6 +599,143 @@ class S3270Session:
         except Exception as e:
             return {"success": False, "message": f"File retrieval error: {str(e)}"}
 
+    def submit_jcl(self, jcl_dataset_name: str) -> Dict:
+        """
+        Submit JCL job from ISPF main menu
+
+        Args:
+            jcl_dataset_name: JCL dataset name WITHOUT quotes (e.g., 'HERC01.TEST.JCL(MYJOB)')
+
+        Returns:
+            {"success": bool, "message": str, "screen_content": str}
+        """
+        if not self.is_connected:
+            return {"success": False, "message": "Not connected to mainframe"}
+
+        if not self.is_logged_in:
+            return {"success": False, "message": "Not logged in to mainframe"}
+
+        try:
+            # Get current screen to verify we're at ISPF main menu
+            initial_screen = self.get_screen_text()
+            try:
+                print(f"DEBUG: JCL Submit Step 0 - Initial screen:\n{initial_screen}")
+                sys.stdout.flush()
+            except UnicodeEncodeError:
+                print("DEBUG: JCL Submit Step 0 - Initial screen received")
+                sys.stdout.flush()
+
+            # Step 1: Enter "1" to go to Settings (Browse/View datasets)
+            # Based on macro recording: using Key() for single character input
+            self._execute_command('Key("1")')
+            time.sleep(0.5)
+            self._execute_command('Enter')
+            time.sleep(2)
+
+            # Get screen after entering option 1
+            screen_1 = self.get_screen_text()
+            try:
+                print(f"DEBUG: JCL Submit Step 1 - After option 1:\n{screen_1}")
+                sys.stdout.flush()
+            except UnicodeEncodeError:
+                print("DEBUG: JCL Submit Step 1 - After option 1 screen received")
+                sys.stdout.flush()
+
+            # Step 2: Move cursor to DSN Name field and enter JCL dataset name
+            # Based on wc3270 macro recording: use Down() to navigate to DSN field
+            # Using Wait(InputField) for intelligent waiting
+            self._execute_command('Wait(InputField, 10)')
+
+            # Navigate down to DSN Name field (6 Down movements based on recording)
+            for _ in range(6):
+                self._execute_command('Down')
+                time.sleep(0.1)
+
+            # Move right to the input area (based on recording)
+            self._execute_command('Right')
+            time.sleep(0.2)
+
+            # Erase any existing content in the field
+            self._execute_command('Erase')
+            time.sleep(0.2)
+
+            # Enter JCL dataset name with single quotes (exactly as in recording)
+            self._execute_command(f'String("\'{jcl_dataset_name}\'")')
+            time.sleep(0.5)
+            self._execute_command('Enter')
+            time.sleep(2)
+
+            # Get screen after entering dataset name
+            screen_2 = self.get_screen_text()
+            try:
+                print(f"DEBUG: JCL Submit Step 2 - After dataset name:\n{screen_2}")
+                sys.stdout.flush()
+            except UnicodeEncodeError:
+                print("DEBUG: JCL Submit Step 2 - After dataset name screen received")
+                sys.stdout.flush()
+
+            # Check if dataset was opened successfully
+            if 'NOT FOUND' in screen_2.upper() or 'INVALID' in screen_2.upper():
+                return {
+                    "success": False,
+                    "message": f"JCL dataset '{jcl_dataset_name}' not found or invalid",
+                    "screen_content": screen_2
+                }
+
+            # Step 3: Submit the JCL by typing SUB on command line
+            # Wait for output to be ready
+            self._execute_command('Wait(Output, 10)')
+
+            # Type SUB command (in lowercase as per recording)
+            # s3270 will automatically place cursor in command area
+            self._execute_command('String("sub")')
+            time.sleep(0.5)
+            self._execute_command('Enter')
+            time.sleep(2)
+
+            # Get screen after SUB command
+            screen_3 = self.get_screen_text()
+            try:
+                print(f"DEBUG: JCL Submit Step 3 - After SUB command:\n{screen_3}")
+                sys.stdout.flush()
+            except UnicodeEncodeError:
+                print("DEBUG: JCL Submit Step 3 - After SUB command screen received")
+                sys.stdout.flush()
+
+            # Check for success indicators
+            screen_3_upper = screen_3.upper()
+
+            if 'JOB' in screen_3_upper and ('SUBMITTED' in screen_3_upper or 'SUBMIT' in screen_3_upper):
+                # Extract job ID if possible (format: JOBxxxxx)
+                job_id = "Unknown"
+                import re
+                job_match = re.search(r'JOB\d+', screen_3)
+                if job_match:
+                    job_id = job_match.group(0)
+
+                return {
+                    "success": True,
+                    "message": f"JCL job submitted successfully. Job ID: {job_id}",
+                    "job_id": job_id,
+                    "screen_content": screen_3
+                }
+            elif 'ERROR' in screen_3_upper or 'INVALID' in screen_3_upper or 'FAILED' in screen_3_upper:
+                return {
+                    "success": False,
+                    "message": "JCL submission failed - check screen content for errors",
+                    "screen_content": screen_3
+                }
+            else:
+                # Assume success if no explicit error
+                return {
+                    "success": True,
+                    "message": "JCL submission command executed (verify screen content)",
+                    "screen_content": screen_3
+                }
+
+        except Exception as e:
+            return {"success": False, "message": f"JCL submission error: {str(e)}"}
+
     def logout(self) -> Dict:
         """Logout from mainframe (F3 + LOGOFF sequence for TSO login)"""
         if not self.is_connected:
@@ -906,6 +1043,24 @@ def get_file():
 
     session = sessions[session_id]['session']
     result = session.get_file_from_mainframe(mainframe_dataset, local_path, transfer_mode)
+
+    return jsonify(result)
+
+@app.route('/api/submit_jcl', methods=['POST'])
+def submit_jcl():
+    """Submit JCL job"""
+    data = request.get_json()
+    if not data or not all(key in data for key in ['session_id', 'jcl_dataset_name']):
+        return jsonify({"success": False, "message": "session_id and jcl_dataset_name are required"}), 400
+
+    session_id = data['session_id']
+    if session_id not in sessions:
+        return jsonify({"success": False, "message": "Invalid session"}), 404
+
+    update_session_access(session_id)
+    jcl_dataset_name = data['jcl_dataset_name']
+    session = sessions[session_id]['session']
+    result = session.submit_jcl(jcl_dataset_name)
 
     return jsonify(result)
 

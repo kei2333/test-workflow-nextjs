@@ -86,6 +86,17 @@
     ]
   },
   {
+    "id": "submitjcl",
+    "name": "Submit JCL",
+    "description": "Submit JCL Job from ISPF",
+    "inputs": [
+      {
+        "name": "JCL Dataset Name",
+        "placeholder": "TRA026.TEST.JCL(FILECR)"
+      }
+    ]
+  },
+  {
     "id": "executioncheck",
     "name": "ExecutionCheck",
     "description": "Check Job Status",
