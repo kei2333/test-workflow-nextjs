@@ -1,47 +1,36 @@
 # IBM Mainframe Test Workflow System / IBM大型机测试工作流系统
 
-A modern web-based system for creating drag-and-drop test workflows and connecting to IBM mainframes via s3270 terminal emulation.
+A modern web-based system for creating drag-and-drop test workflows that execute on IBM mainframes via s3270 automation.
 
-一个现代化的基于Web的系统，用于创建拖放式测试工作流并通过s3270终端仿真连接IBM大型机。
+一个现代化的基于Web的系统，用于创建拖放式测试工作流，通过s3270自动化在IBM大型机上执行。
 
-## 🎉 **Latest Release - TK5 Local Mainframe Integration**
+## 🎉 **Latest Release - JCL Submission & Automation**
 
 ### ✅ **What's New (Latest Update)**
+- 🚀 **JCL Submission**: Automated JCL job submission from ISPF main menu
 - 🏠 **Local TK5 Mainframe**: Successfully integrated with TK5 MVS 3.8j system (localhost:3270)
-- 📁 **CreateFile Enhancement**: Real file creation functionality with actual downloadable files
+- 📁 **File Operations**: CreateFile, SendFile, GetFile with real mainframe integration
 - 🔗 **Dual Mainframe Support**: Both pub400.com (remote) and TK5 (local) mainframe connections
 - 💾 **File Generation**: Structured file creation with copybook layouts and multiple formats
-- 🚀 **Workflow Integration**: LogonISPF + CreateFile workflows execute on real mainframe systems
-- 🖥️ **Seamless Navigation**: Added "Mainframe Terminal" button in homepage header for quick access
-- ⚡ **Real-time Terminal**: Full interactive s3270 terminal with live screen updates
-- 📱 **Responsive Design**: Beautiful gradient UI with hover effects and animations
+- 🤖 **Workflow Automation**: Drag-and-drop workflows execute on real mainframe systems
+- 🎯 **wc3270 Recording**: Accurate automation based on macro recordings
 
 ### 🎯 **Demo Flow**
-1. Visit `http://localhost:3000` (or network IP for WiFi access) - Main workflow builder interface
+1. Visit `http://localhost:3000` - Workflow builder interface
 2. **Local TK5**: Connect to `localhost:3270` with credentials `HERC01/CUL8TR`
 3. **Remote pub400**: Connect to `pub400.com:23` with credentials `pub400/pub400`
-4. **Test CreateFile**: Build LogonISPF + CreateFile workflow with real file generation
-5. Experience real IBM mainframe interaction via s3270
+4. **Build Workflow**: Drag LogonISPF → Submit JCL → Check Status
+5. **Execute**: Run automated workflows on real IBM mainframe
 6. **Network Access**: Available at `http://[your-ip]:3000` for other devices on same WiFi
 
-### 💡 **Technical Achievement**
+### 💡 **Technical Stack**
 - **Frontend**: Next.js 15 + React 19 + TypeScript
-- **Backend**: Python Flask + s3270 native integration
-- **Mainframes**: TK5 MVS 3.8j (localhost:3270) + pub400.com IBM i system
-- **File Processing**: Real file generation with copybook layouts and structured content
-- **UI/UX**: Glass-morphism design with smooth transitions
+- **Backend**: Python Flask + s3270 automation
+- **Mainframes**: TK5 MVS 3.8j (localhost:3270) + pub400.com IBM i
+- **Automation**: wc3270 macro-based navigation
+- **File Processing**: Real file generation with copybook layouts
 
 ## 🌟 Features / 功能特性
-
-### 🚀 **Latest Updates - Real Mainframe Connectivity**
-- **🔗 Live Mainframe Connection**: Successfully connects to real IBM mainframe systems (pub400.com)
-- **🖥️ Dual Interface**: Seamless navigation between workflow builder and mainframe terminal
-- **⚡ Quick Access Button**: One-click navigation to mainframe terminal from homepage
-- **🔄 Real-time Integration**: Workflow functions execute on actual mainframe systems
-- **🔗 实时大型机连接**: 成功连接真实的IBM大型机系统 (pub400.com)
-- **🖥️ 双界面系统**: 工作流构建器和大型机终端之间的无缝导航
-- **⚡ 快速访问按钮**: 从主页一键导航到大型机终端
-- **🔄 实时集成**: 工作流功能在真实大型机系统上执行
 
 ### Test Workflow Builder / 测试工作流构建器
 - **Drag & Drop Interface**: Create test workflows by dragging functions from left panel to canvas
@@ -53,19 +42,17 @@ A modern web-based system for creating drag-and-drop test workflows and connecti
 - **功能执行**: 实时进度跟踪执行工作流
 - **真实大型机执行**: 工作流在真实IBM系统上通过s3270执行
 
-### IBM Mainframe Integration / IBM大型机集成
-- **s3270 Terminal Emulation**: Native IBM 3270 terminal emulator integration
-- **Real Mainframe Connection**: Connect to actual IBM mainframe systems (pub400.com)
-- **Interactive Terminal**: Full-screen terminal interface with real-time updates
-- **Authentication Support**: Secure login with username/password validation
-- **Session Management**: Multiple concurrent mainframe sessions
-- **Command Execution**: Send commands and receive real mainframe responses
-- **s3270终端仿真**: 原生IBM 3270终端仿真器集成
-- **真实大型机连接**: 连接到实际的IBM大型机系统 (pub400.com)
-- **交互式终端**: 带实时更新的全屏终端界面
-- **身份验证支持**: 用户名/密码验证的安全登录
-- **会话管理**: 多个并发大型机会话
-- **命令执行**: 发送命令并接收真实大型机响应
+### IBM Mainframe Automation / IBM大型机自动化
+- **s3270 Automation**: Native IBM 3270 terminal automation via s3270
+- **JCL Submission**: Automated JCL job submission from ISPF
+- **File Transfer**: Send/receive files between local system and mainframe
+- **Session Management**: Persistent mainframe sessions across workflows
+- **TSO/ISPF Navigation**: Automated navigation based on wc3270 recordings
+- **s3270自动化**: 通过s3270的原生IBM 3270终端自动化
+- **JCL提交**: 从ISPF自动提交JCL作业
+- **文件传输**: 在本地系统和大型机之间发送/接收文件
+- **会话管理**: 跨工作流的持久大型机会话
+- **TSO/ISPF导航**: 基于wc3270录制的自动化导航
 
 ## 🏗️ Architecture / 系统架构
 
@@ -729,10 +716,6 @@ Once the website is running, you can:
    - Click the "Run Workflow" button to execute your test sequence
    - 点击"Run Workflow"按钮执行您的测试序列
 
-5. **Access Mainframe Terminal**:
-   - Click "Mainframe Terminal" button for advanced features
-   - 点击"Mainframe Terminal"按钮使用高级功能
-
 ### 🔄 How to Restart Later (如何重新启动)
 
 If you want to use the website again after stopping everything:
@@ -874,23 +857,19 @@ The system connects directly to real IBM mainframe systems:
 test-workflow-nextjs/
 ├── src/
 │   ├── app/
-│   │   ├── page.tsx              # Main workflow builder / 主工作流构建器
-│   │   └── mainframe/
-│   │       └── page.tsx          # Mainframe terminal page / 大型机终端页面
+│   │   └── page.tsx              # Main workflow builder / 主工作流构建器
 │   ├── components/
 │   │   ├── WorkflowBuilder.tsx   # Drag-and-drop workflow interface
-│   │   ├── MainframeLogin.tsx    # Mainframe connection component
 │   │   └── ...
 │   ├── services/
 │   │   ├── functionExecutor.ts   # Workflow execution logic
 │   │   └── mainframeApi.ts       # Mainframe API client
-│   ├── hooks/
-│   │   └── useMainframe.ts       # Mainframe connection hook
 │   └── types/
-│       ├── workflow.ts           # Workflow type definitions
-│       └── mainframe.ts          # Mainframe type definitions
+│       └── workflow.ts           # Workflow type definitions
 ├── backend/
-│   └── app.py                    # Python Flask API server
+│   └── app.py                    # Python Flask API server with s3270 integration
+├── data/
+│   └── functions.json            # Available workflow functions
 └── README.md                     # This file / 本文件
 ```
 
@@ -900,26 +879,31 @@ test-workflow-nextjs/
 - `GET /api/health` - Health check / 健康检查
 - `POST /api/connect` - Connect to mainframe / 连接大型机
 - `POST /api/login` - Login to mainframe / 登录大型机
+- `POST /api/submit_jcl` - Submit JCL job / 提交JCL作业
+- `POST /api/sendfile` - Send file to mainframe / 发送文件到大型机
+- `POST /api/getfile` - Get file from mainframe / 从大型机获取文件
 - `GET /api/screen?session_id=<id>` - Get screen content / 获取屏幕内容
 - `POST /api/command` - Send command / 发送命令
+- `POST /api/logout` - Logout from mainframe / 从大型机登出
 - `POST /api/disconnect` - Disconnect / 断开连接
 - `GET /api/sessions` - List active sessions / 列出活动会话
 
 ## 🎯 Available Workflow Functions / 可用工作流功能
 
 1. **logonispf** - Login to ISPF / 登录ISPF
-2. **editjcl** - Edit JCL files / 编辑JCL文件
-3. **execjcl** - Execute JCL jobs / 执行JCL作业
-4. **executioncheck** - Check job execution / 检查作业执行
-5. **getjoblog** - Retrieve job logs / 获取作业日志
-6. **filecomp1** - File comparison / 文件比较
-7. **filecomp2** - Conditional file comparison / 条件文件比较
-8. **createfile** - Create files / 创建文件
-9. **sendfile** - Send files to mainframe / 发送文件到大型机
-10. **getfile** - Get files from mainframe / 从大型机获取文件
-11. **fileconv** - File format conversion / 文件格式转换
-12. **gotoispfmainscreen** - Return to ISPF main / 返回ISPF主屏幕
-13. **filereccount** - Get file record count / 获取文件记录数
+2. **submitjcl** - Submit JCL job from ISPF / 从ISPF提交JCL作业
+3. **editjcl** - Edit JCL files / 编辑JCL文件
+4. **execjcl** - Execute JCL jobs / 执行JCL作业
+5. **executioncheck** - Check job execution / 检查作业执行
+6. **getjoblog** - Retrieve job logs / 获取作业日志
+7. **filecomp1** - File comparison / 文件比较
+8. **filecomp2** - Conditional file comparison / 条件文件比较
+9. **createfile** - Create files / 创建文件
+10. **sendfile** - Send files to mainframe / 发送文件到大型机
+11. **getfile** - Get files from mainframe / 从大型机获取文件
+12. **fileconv** - File format conversion / 文件格式转换
+13. **gotoispfmainscreen** - Return to ISPF main / 返回ISPF主屏幕
+14. **filereccount** - Get file record count / 获取文件记录数
 
 ## 🔧 Configuration / 配置
 
@@ -955,19 +939,23 @@ NEXT_PUBLIC_API_URL=http://localhost:5001
 3. Update type definitions in `src/types/workflow.ts`
 
 ### Extending Mainframe Integration / 扩展大型机集成
-1. Add new commands in `backend/app.py`
-2. Update API client in `src/services/mainframeApi.ts`
-3. Enhance UI components in `src/components/MainframeLogin.tsx`
+1. Add new automation methods in `backend/app.py` S3270Session class
+2. Create Flask API routes for new functions
+3. Update API client in `src/services/mainframeApi.ts`
+4. Add function definitions to `data/functions.json`
+5. Implement execution logic in `src/services/functionExecutor.ts`
 
 ## 📝 Testing / 测试
 
-### Real Mainframe Usage / 真实大型机使用
+### Workflow Testing / 工作流测试
 1. Start the application / 启动应用
-2. Navigate to mainframe page / 导航到大型机页面
-3. Use `pub400.com` as host and `23` as port (pre-configured)
-4. Login with `pub400/pub400` credentials (pre-filled)
-5. Experience real IBM mainframe commands and screens
-6. All workflow functions execute on the actual mainframe system
+2. Open `http://localhost:3000` in browser
+3. Drag LogonISPF function to canvas
+4. Configure connection (localhost:3270 for TK5 or pub400.com:23)
+5. Add Submit JCL or other functions
+6. Click "Run Workflow" to execute
+7. Monitor real-time execution progress
+8. Verify results on actual mainframe system
 
 ## 🤝 Contributing / 贡献
 

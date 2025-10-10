@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import Link from 'next/link';
 import { FunctionData } from '@/types/workflow';
 import { EnhancedFunctionList } from '@/components/EnhancedFunctionList';
 import { EnhancedWorkflowCanvas } from '@/components/EnhancedWorkflowCanvas';
@@ -390,20 +389,6 @@ export default function Home() {
                 )}
               </button>
             )}
-
-            {/* Mainframe Terminal Button */}
-            <Link
-              href="/mainframe"
-              className="group flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-600 hover:from-blue-700 hover:via-cyan-600 hover:to-teal-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-white/20 backdrop-blur-sm"
-            >
-              <svg className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-              </svg>
-              <span>Mainframe Terminal</span>
-              {isMainframeConnected && (
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" title="Connected"></div>
-              )}
-            </Link>
           </div>
         </div>
         
