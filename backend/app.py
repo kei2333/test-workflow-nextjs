@@ -601,13 +601,13 @@ class S3270Session:
 
     def submit_jcl(self, jcl_dataset_name: str) -> Dict:
         """
-        Submit JCL job from ISPF main menu
+        Submit JCL job using TSO SUB command from READY prompt
 
         Args:
             jcl_dataset_name: JCL dataset name WITHOUT quotes (e.g., 'HERC01.TEST.JCL(MYJOB)')
 
         Returns:
-            {"success": bool, "message": str, "screen_content": str}
+            {"success": bool, "message": str, "job_id": str, "screen_content": str}
         """
         if not self.is_connected:
             return {"success": False, "message": "Not connected to mainframe"}
@@ -616,7 +616,7 @@ class S3270Session:
             return {"success": False, "message": "Not logged in to mainframe"}
 
         try:
-            # Get current screen to verify we're at ISPF main menu
+            # Get current screen to see where we are
             initial_screen = self.get_screen_text()
             try:
                 print(f"DEBUG: JCL Submit Step 0 - Initial screen:\n{initial_screen}")
@@ -625,111 +625,72 @@ class S3270Session:
                 print("DEBUG: JCL Submit Step 0 - Initial screen received")
                 sys.stdout.flush()
 
-            # Step 1: Enter "1" to go to Settings (Browse/View datasets)
-            # Based on macro recording: using Key() for single character input
-            self._execute_command('Key("1")')
-            time.sleep(0.5)
-            self._execute_command('Enter')
-            time.sleep(2)
+            # Step 1: Press F3 to exit ISPF and return to TSO READY prompt
+            self._execute_command('PF(3)')
+            time.sleep(3)
 
-            # Get screen after entering option 1
+            # Get screen after F3
             screen_1 = self.get_screen_text()
             try:
-                print(f"DEBUG: JCL Submit Step 1 - After option 1:\n{screen_1}")
+                print(f"DEBUG: JCL Submit Step 1 - After F3 screen:\n{screen_1}")
                 sys.stdout.flush()
             except UnicodeEncodeError:
-                print("DEBUG: JCL Submit Step 1 - After option 1 screen received")
+                print("DEBUG: JCL Submit Step 1 - After F3 screen received")
                 sys.stdout.flush()
 
-            # Step 2: Move cursor to DSN Name field and enter JCL dataset name
-            # Based on wc3270 macro recording: use Down() to navigate to DSN field
-            # Using Wait(InputField) for intelligent waiting
-            self._execute_command('Wait(InputField, 10)')
-
-            # Navigate down to DSN Name field (6 Down movements based on recording)
-            for _ in range(6):
-                self._execute_command('Down')
-                time.sleep(0.1)
-
-            # Move right to the input area (based on recording)
-            self._execute_command('Right')
-            time.sleep(0.2)
-
-            # Erase any existing content in the field
-            self._execute_command('Erase')
-            time.sleep(0.2)
-
-            # Enter JCL dataset name with single quotes (exactly as in recording)
-            self._execute_command(f'String("\'{jcl_dataset_name}\'")')
-            time.sleep(0.5)
-            self._execute_command('Enter')
-            time.sleep(2)
-
-            # Get screen after entering dataset name
-            screen_2 = self.get_screen_text()
-            try:
-                print(f"DEBUG: JCL Submit Step 2 - After dataset name:\n{screen_2}")
-                sys.stdout.flush()
-            except UnicodeEncodeError:
-                print("DEBUG: JCL Submit Step 2 - After dataset name screen received")
-                sys.stdout.flush()
-
-            # Check if dataset was opened successfully
-            if 'NOT FOUND' in screen_2.upper() or 'INVALID' in screen_2.upper():
+            # Check if READY prompt appears
+            if 'READY' not in screen_1.upper():
                 return {
                     "success": False,
-                    "message": f"JCL dataset '{jcl_dataset_name}' not found or invalid",
-                    "screen_content": screen_2
+                    "message": "READY prompt not found after F3. Please ensure you are in ISPF.",
+                    "screen_content": screen_1
                 }
 
-            # Step 3: Submit the JCL by typing SUB on command line
-            # Wait for output to be ready
-            self._execute_command('Wait(Output, 10)')
-
-            # Type SUB command (in lowercase as per recording)
-            # s3270 will automatically place cursor in command area
-            self._execute_command('String("sub")')
+            # Step 2: Type SUB command with JCL dataset name
+            sub_command = f"sub '{jcl_dataset_name}'"
+            self._execute_command(f'String("{sub_command}")')
             time.sleep(0.5)
-            self._execute_command('Enter')
-            time.sleep(2)
 
-            # Get screen after SUB command
+            # Step 3: Press Enter to submit the JCL
+            self._execute_command('Enter')
+            time.sleep(3)
+
+            # Get screen after Enter
             screen_3 = self.get_screen_text()
             try:
-                print(f"DEBUG: JCL Submit Step 3 - After SUB command:\n{screen_3}")
+                print(f"DEBUG: JCL Submit Step 3 - After Enter (submission):\n{screen_3}")
                 sys.stdout.flush()
             except UnicodeEncodeError:
-                print("DEBUG: JCL Submit Step 3 - After SUB command screen received")
+                print("DEBUG: JCL Submit Step 3 - After Enter screen received")
                 sys.stdout.flush()
 
             # Check for success indicators
             screen_3_upper = screen_3.upper()
 
-            if 'JOB' in screen_3_upper and ('SUBMITTED' in screen_3_upper or 'SUBMIT' in screen_3_upper):
-                # Extract job ID if possible (format: JOBxxxxx)
+            if 'SUBMITTED' in screen_3_upper and 'JOB' in screen_3_upper:
+                # Extract job ID - match anything between "JOB " and " SUBMITTED"
                 job_id = "Unknown"
                 import re
-                job_match = re.search(r'JOB\d+', screen_3)
+                job_match = re.search(r'JOB\s+(.+?)\s+SUBMITTED', screen_3, re.IGNORECASE)
                 if job_match:
-                    job_id = job_match.group(0)
+                    job_id = job_match.group(1).strip()
 
                 return {
                     "success": True,
-                    "message": f"JCL job submitted successfully. Job ID: {job_id}",
+                    "message": f"JCL job submitted successfully",
                     "job_id": job_id,
                     "screen_content": screen_3
                 }
-            elif 'ERROR' in screen_3_upper or 'INVALID' in screen_3_upper or 'FAILED' in screen_3_upper:
+            elif 'ERROR' in screen_3_upper or 'INVALID' in screen_3_upper or 'FAILED' in screen_3_upper or 'NOT FOUND' in screen_3_upper:
                 return {
                     "success": False,
                     "message": "JCL submission failed - check screen content for errors",
                     "screen_content": screen_3
                 }
             else:
-                # Assume success if no explicit error
                 return {
-                    "success": True,
-                    "message": "JCL submission command executed (verify screen content)",
+                    "success": False,
+                    "message": "JCL submission result unclear - please check screen content",
                     "screen_content": screen_3
                 }
 
