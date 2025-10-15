@@ -463,8 +463,8 @@ export class FunctionExecutor {
       });
 
       if (response.success) {
-        const jobIdInfo = response.job_id ? ` Job ID: ${response.job_id}` : '';
-        return `${functionName}: ${response.message}${jobIdInfo}. JCL dataset '${jclDatasetName}' submitted successfully.`;
+        const jobIdInfo = response.job_id ? ` Job: ${response.job_id}` : '';
+        return `${functionName}:${jobIdInfo}. ${response.message}. JCL dataset '${jclDatasetName}' submitted successfully.`;
       } else {
         return `${functionName}: JCL submission failed - ${response.message}`;
       }
