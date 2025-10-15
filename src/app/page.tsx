@@ -111,7 +111,7 @@ export default function Home() {
           if (logoutResult.success) {
             addLog('success', 'Logged out from TSO session');
           }
-        } catch (logoutError) {
+        } catch {
           addLog('warning', 'Logout failed, continuing with disconnect');
         }
       }

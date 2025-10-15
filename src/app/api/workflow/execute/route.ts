@@ -15,10 +15,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate workflow items
-    const validatedItems: WorkflowItem[] = workflowItems.map((item: any) => ({
+    const validatedItems: WorkflowItem[] = workflowItems.map((item: Partial<WorkflowItem>) => ({
       id: item.id || crypto.randomUUID(),
-      functionId: item.functionId,
-      name: item.name,
+      functionId: item.functionId ?? '',
+      name: item.name ?? 'Unnamed Function',
       inputs: item.inputs || {}
     }));
 

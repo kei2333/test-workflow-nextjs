@@ -19,6 +19,17 @@ export const InputConfigModal: React.FC<InputConfigModalProps> = ({
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const resolveDefaultValue = (input: FunctionData['inputs'][number]): string => {
+    if (input.type === 'radio' && input.options && input.options.length > 0) {
+      const latestOption = input.options.find(option => option.value === 'latest');
+      if (latestOption) {
+        return latestOption.value;
+      }
+      return input.options[0].value;
+    }
+    return input.placeholder || '';
+  };
+
   useEffect(() => {
     if (functionData) {
       // Initialize input values with config values if available, otherwise use placeholders
@@ -42,7 +53,7 @@ export const InputConfigModal: React.FC<InputConfigModalProps> = ({
                       initialInputs[input.name] = configData.mainframe.port?.toString() || input.placeholder;
                       break;
                     case 'Login Type':
-                      initialInputs[input.name] = configData.mainframe.loginType || input.placeholder;
+                      initialInputs[input.name] = configData.mainframe.loginType || resolveDefaultValue(input);
                       break;
                     case 'User Name':
                       initialInputs[input.name] = configData.mainframe.username || input.placeholder;
@@ -51,31 +62,31 @@ export const InputConfigModal: React.FC<InputConfigModalProps> = ({
                       initialInputs[input.name] = configData.mainframe.password || input.placeholder;
                       break;
                     default:
-                      initialInputs[input.name] = input.placeholder;
+                      initialInputs[input.name] = resolveDefaultValue(input);
                   }
                 });
               } else {
                 // Use placeholders if no config
                 functionData.inputs.forEach(input => {
-                  initialInputs[input.name] = input.placeholder;
+                  initialInputs[input.name] = resolveDefaultValue(input);
                 });
               }
             } else {
               // Use placeholders if no config file
               functionData.inputs.forEach(input => {
-                initialInputs[input.name] = input.placeholder;
+                initialInputs[input.name] = resolveDefaultValue(input);
               });
             }
           } catch (error) {
-            console.log('Failed to load config for workflow, using placeholders');
+            console.log('Failed to load config for workflow, using placeholders', error);
             functionData.inputs.forEach(input => {
-              initialInputs[input.name] = input.placeholder;
+              initialInputs[input.name] = resolveDefaultValue(input);
             });
           }
         } else {
           // For non-LogonISPF functions, use placeholders
           functionData.inputs.forEach(input => {
-            initialInputs[input.name] = input.placeholder;
+            initialInputs[input.name] = resolveDefaultValue(input);
           });
         }
         
@@ -87,12 +98,48 @@ export const InputConfigModal: React.FC<InputConfigModalProps> = ({
     }
   }, [functionData]);
 
+  const getJobIdMode = () => {
+    const rawValue = inputValues['Use Latest Job ID'] || '';
+    return rawValue.toLowerCase() || 'latest';
+  };
+
+  const shouldHideJobIdentifier = () => getJobIdMode() !== 'custom';
+
+  const shouldHidePollingControls = () => {
+    if (!functionData) {
+      return false;
+    }
+    const pollingFunctions = ['executioncheck', 'getjoblog'];
+    return pollingFunctions.includes(functionData.id) && shouldHideJobIdentifier();
+  };
+
   const handleInputChange = (inputName: string, value: string) => {
     const sanitizedValue = sanitizeInput(value);
-    setInputValues(prev => ({
-      ...prev,
-      [inputName]: sanitizedValue
-    }));
+    setInputValues(prev => {
+      const updated: Record<string, string> = {
+        ...prev,
+        [inputName]: sanitizedValue
+      };
+
+      if (inputName === 'Use Latest Job ID') {
+        const mode = sanitizedValue.toLowerCase() || 'latest';
+        if (mode !== 'custom') {
+          delete updated['Job Identifier'];
+          delete updated['Max Attempts'];
+          delete updated['Poll Interval Seconds'];
+        } else {
+          functionData?.inputs.forEach(input => {
+            if (input.name === 'Max Attempts' || input.name === 'Poll Interval Seconds') {
+              if (!updated[input.name]) {
+                updated[input.name] = resolveDefaultValue(input);
+              }
+            }
+          });
+        }
+      }
+
+      return updated;
+    });
     
     // Clear error when user starts typing
     if (errors[inputName]) {
@@ -101,6 +148,29 @@ export const InputConfigModal: React.FC<InputConfigModalProps> = ({
         [inputName]: ''
       }));
     }
+
+    if (inputName === 'Use Latest Job ID') {
+      const mode = (sanitizedValue.toLowerCase() || 'latest');
+      setErrors(prev => {
+        const updatedErrors = { ...prev };
+        delete updatedErrors['Job Identifier'];
+        delete updatedErrors['Max Attempts'];
+        delete updatedErrors['Poll Interval Seconds'];
+        return updatedErrors;
+      });
+
+      if (mode === 'custom') {
+        setInputValues(prevValues => {
+          const updated = { ...prevValues };
+          functionData?.inputs.forEach(input => {
+            if ((input.name === 'Max Attempts' || input.name === 'Poll Interval Seconds') && !updated[input.name]) {
+              updated[input.name] = resolveDefaultValue(input);
+            }
+          });
+          return updated;
+        });
+      }
+    }
   };
 
   const validateInputs = (): boolean => {
@@ -108,9 +178,18 @@ export const InputConfigModal: React.FC<InputConfigModalProps> = ({
     let isValid = true;
 
     if (functionData) {
+      const jobIdMode = getJobIdMode();
       functionData.inputs.forEach(input => {
         const value = inputValues[input.name]?.trim() || '';
         
+        if (input.name === 'Job Identifier' && jobIdMode !== 'custom') {
+          return;
+        }
+
+        if (shouldHidePollingControls() && (input.name === 'Max Attempts' || input.name === 'Poll Interval Seconds')) {
+          return;
+        }
+
         // Basic validation - you can extend this
         if (value.length === 0) {
           newErrors[input.name] = `${input.name} cannot be empty`;
@@ -164,7 +243,17 @@ export const InputConfigModal: React.FC<InputConfigModalProps> = ({
           </div>
         ) : (
           <div className="space-y-6">
-            {functionData.inputs.map((input, index) => (
+            {functionData.inputs.map((input, index) => {
+              const jobIdMode = getJobIdMode();
+              if (input.name === 'Job Identifier' && jobIdMode !== 'custom') {
+                return null;
+              }
+
+              if (shouldHidePollingControls() && (input.name === 'Max Attempts' || input.name === 'Poll Interval Seconds')) {
+                return null;
+              }
+
+              return (
               <div key={`${input.name}-${index}`} className="space-y-2">
                 <label
                   htmlFor={`input-${index}`}
@@ -229,7 +318,8 @@ export const InputConfigModal: React.FC<InputConfigModalProps> = ({
                   </p>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
 

@@ -17,41 +17,9 @@ export interface ExecutionProgress {
   results: ExecutionResult[];
 }
 
-// System configuration type
-type SystemConfig = {
-  host: string;
-  port: number;
-  defaultUsername: string;
-  defaultPassword: string;
-};
-
-// Available systems
-const SYSTEMS: Record<string, SystemConfig> = {
-  pub400: {
-    host: 'pub400.com',
-    port: 23,
-    defaultUsername: 'pub400',
-    defaultPassword: 'pub400',
-  },
-  tk5: {
-    host: 'localhost',
-    port: 3270,
-    defaultUsername: 'HERC01',
-    defaultPassword: 'CUL8TR',
-  },
-};
-
-// Get current system from localStorage or default to pub400
-function getCurrentSystem(): SystemConfig {
-  if (typeof window !== 'undefined') {
-    const systemType = localStorage.getItem('mainframe-system-type') || 'pub400';
-    return SYSTEMS[systemType] || SYSTEMS.pub400;
-  }
-  return SYSTEMS.pub400;
-}
-
 export class FunctionExecutor {
   private static readonly STEP_DELAY = 1500; // ms between steps
+  private static readonly DEFAULT_MAX_OUTPUT_PAGES = 50;
 
   static async executeWorkflow(
     workflowItems: WorkflowItem[],
@@ -194,10 +162,8 @@ export class FunctionExecutor {
         return `${functionName}: JCL job '${sanitizedInputs['JCL Name'] || 'JCL1(SHIPPRATEST.JCL1)'}' submitted successfully. Job execution started.`;
       
       case 'executioncheck':
-        return `${functionName}: Job status checked. Job '${sanitizedInputs['Job Name'] || 'JOBABCA1'}' execution status retrieved from spool on ${sanitizedInputs['Job Run Date'] || 'Date'}.`;
-      
       case 'getjoblog':
-        return `${functionName}: Job log retrieved successfully for '${sanitizedInputs['Job Name'] || 'JOBABCA1'}' on ${sanitizedInputs['Job Run Date'] || 'Date'}'. Log file generated using GetFile from mainframe.`;
+        return await this.executeJobStatusAndOutput(functionName, sanitizedInputs);
       
       case 'filecomp1':
         return `${functionName}: File comparison completed. Compared '${sanitizedInputs['File Name1'] || 'File1'}' at '${sanitizedInputs['Windows File Location1'] || 'File location'}' and '${sanitizedInputs['File Name2'] || 'File2'}' at '${sanitizedInputs['Windows File Location2'] || 'File location'}'. Files compared and differences identified.`;
@@ -438,6 +404,118 @@ export class FunctionExecutor {
     }
   }
 
+  private static async executeJobStatusAndOutput(
+    functionName: string,
+    inputs: Record<string, string>
+  ): Promise<string> {
+    try {
+      let sessionId = '';
+      if (typeof window !== 'undefined') {
+        sessionId = localStorage.getItem('mainframe-session-id') || '';
+      }
+
+      if (!sessionId) {
+        return `${functionName}: Error - No active mainframe session. Please login first.`;
+      }
+
+      const jobIdModeRaw = inputs['Use Latest Job ID'] || '';
+      const jobIdMode = jobIdModeRaw.toLowerCase();
+      const preferLatest = jobIdMode !== 'custom';
+
+      const jobIdentifierInput = inputs['Job Identifier'] || inputs['Job Name'] || '';
+      let jobIdentifier = jobIdentifierInput.trim();
+
+      let storedJobIdentifier = '';
+      if (typeof window !== 'undefined') {
+        storedJobIdentifier = localStorage.getItem('mainframe-last-job-id') || '';
+      }
+
+      if (preferLatest && storedJobIdentifier) {
+        jobIdentifier = storedJobIdentifier;
+      } else if (!jobIdentifier && storedJobIdentifier) {
+        jobIdentifier = storedJobIdentifier;
+      }
+
+      if (!jobIdentifier) {
+        return `${functionName}: Error - No job identifier available. Submit a job first or switch 'Use Latest Job ID' to custom and provide one.`;
+      }
+
+  const maxAttemptsValue = inputs['Max Attempts'] || '';
+  const waitSecondsValue = inputs['Poll Interval Seconds'] || '';
+
+      const maxAttempts = (() => {
+        const parsed = parseInt(maxAttemptsValue, 10);
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
+      })();
+
+      const waitSeconds = (() => {
+        const parsed = parseFloat(waitSecondsValue);
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
+      })();
+
+      const statusResponse = await mainframeApi.checkJobStatus({
+        session_id: sessionId,
+        job_identifier: jobIdentifier,
+        max_attempts: maxAttempts,
+        wait_seconds: waitSeconds
+      });
+
+      if (!statusResponse.success) {
+        return `${functionName}: Job status check failed - ${statusResponse.message}`;
+      }
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('mainframe-last-job-id', jobIdentifier);
+        if (statusResponse.job_state) {
+          localStorage.setItem('mainframe-last-job-state', statusResponse.job_state);
+        }
+        localStorage.setItem('mainframe-last-job-output-ready', statusResponse.reached_output_queue ? 'true' : 'false');
+      }
+
+      const state = statusResponse.job_state || 'UNKNOWN';
+      const attemptsUsed = statusResponse.attempts ?? maxAttempts;
+      const jobIdSource = preferLatest && storedJobIdentifier
+        ? 'latest submitted job'
+        : preferLatest
+          ? 'custom job identifier (latest not available)'
+          : 'custom job identifier';
+
+      if (!statusResponse.reached_output_queue) {
+        return `${functionName}: Status check completed for ${jobIdentifier}. Latest detected state: ${state}. Attempts: ${attemptsUsed}. Source: ${jobIdSource}. Job output is not yet available.`;
+      }
+
+      const outputResponse = await mainframeApi.getJobOutput({
+        session_id: sessionId,
+        job_identifier: jobIdentifier,
+        max_pages: this.DEFAULT_MAX_OUTPUT_PAGES
+      });
+
+      if (!outputResponse.success) {
+        return `${functionName}: Status check completed for ${jobIdentifier}. Latest detected state: ${state}. Attempts: ${attemptsUsed}. Source: ${jobIdSource}. Job output retrieval failed - ${outputResponse.message}`;
+      }
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('mainframe-last-job-output-ready', 'true');
+        if (outputResponse.cond_code) {
+          localStorage.setItem('mainframe-last-job-cond-code', outputResponse.cond_code);
+        }
+        if (outputResponse.output_path) {
+          localStorage.setItem('mainframe-last-job-output-path', outputResponse.output_path);
+        }
+      }
+
+      const condCodeInfo = outputResponse.cond_code ? ` COND CODE: ${outputResponse.cond_code}.` : '';
+      const pagesInfo = outputResponse.pages ? ` Pages captured: ${outputResponse.pages}.` : '';
+      const pathInfo = outputResponse.output_path ? ` Saved at backend/${outputResponse.output_path}.` : '';
+
+      return `${functionName}: Status and output retrieval completed for ${jobIdentifier}. Final state: ${state}. Job output captured.${condCodeInfo}${pagesInfo}${pathInfo} Attempts: ${attemptsUsed}. Source: ${jobIdSource}.`;
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to check job status and fetch output: ${errorMessage}`);
+    }
+  }
+
   private static async executeSubmitJcl(
     functionName: string,
     inputs: Record<string, string>
@@ -464,6 +542,11 @@ export class FunctionExecutor {
 
       if (response.success) {
         const jobIdInfo = response.job_id ? `${response.job_id}` : '';
+        if (typeof window !== 'undefined' && response.job_id) {
+          localStorage.setItem('mainframe-last-job-id', response.job_id);
+          localStorage.setItem('mainframe-last-job-state', 'SUBMITTED');
+          localStorage.setItem('mainframe-last-job-output-ready', 'false');
+        }
         return `${functionName}: Job: ${jobIdInfo} submitted successfully. The JCL submitted is '${jclDatasetName}'.`;
       } else {
         return `${functionName}: JCL submission failed - ${response.message}`;

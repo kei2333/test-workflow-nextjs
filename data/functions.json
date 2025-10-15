@@ -102,27 +102,32 @@
     "description": "Check Job Status",
     "inputs": [
       {
-        "name": "Job Name",
-        "placeholder": "JOBABCA1"
+        "name": "Job Identifier",
+        "placeholder": "TRA026AA(JOB30468)"
       },
       {
-        "name": "Job Run Date",
-        "placeholder": "Date"
-      }
-    ]
-  },
-  {
-    "id": "getjoblog",
-    "name": "GetJobLog",
-    "description": "Get Job Log",
-    "inputs": [
-      {
-        "name": "Job Name",
-        "placeholder": "JOBABCA1"
+        "name": "Use Latest Job ID",
+        "type": "radio",
+        "options": [
+          {
+            "value": "latest",
+            "label": "Latest submitted job",
+            "description": "Automatically reuse the most recent job ID"
+          },
+          {
+            "value": "custom",
+            "label": "Custom job identifier",
+            "description": "Specify a different job identifier manually"
+          }
+        ]
       },
       {
-        "name": "Job Run Date",
-        "placeholder": "Date"
+        "name": "Max Attempts",
+        "placeholder": "5"
+      },
+      {
+        "name": "Poll Interval Seconds",
+        "placeholder": "5"
       }
     ]
   },

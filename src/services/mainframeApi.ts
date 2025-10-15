@@ -122,6 +122,41 @@ export interface SubmitJclResponse {
   screen_content?: string;
 }
 
+export interface JobStatusRequest {
+  session_id: string;
+  job_identifier?: string;
+  max_attempts?: number;
+  wait_seconds?: number;
+}
+
+export interface JobStatusResponse {
+  success: boolean;
+  message: string;
+  job_identifier?: string;
+  job_state?: string;
+  attempts?: number;
+  reached_output_queue?: boolean;
+  screen_content?: string;
+  history?: Array<{ attempt: string; screen_content: string }>;
+}
+
+export interface JobOutputRequest {
+  session_id: string;
+  job_identifier?: string;
+  max_pages?: number;
+}
+
+export interface JobOutputResponse {
+  success: boolean;
+  message: string;
+  job_identifier?: string;
+  cond_code?: string;
+  pages?: number;
+  output_path?: string;
+  screen_content?: string;
+  output_excerpt?: string;
+}
+
 class MainframeApiService {
   /**
    * Check if the backend service is healthy and available
@@ -130,7 +165,7 @@ class MainframeApiService {
     try {
       const response = await fetch(`${BASE_URL}/health`);
       return await response.json();
-    } catch (error) {
+    } catch {
       return {
         success: false,
         status: 'error',
@@ -193,7 +228,7 @@ class MainframeApiService {
     try {
       const response = await fetch(`${BASE_URL}/screen?session_id=${sessionId}`);
       return await response.json();
-    } catch (error) {
+    } catch {
       return {
         success: false,
         screen_content: '',
@@ -276,7 +311,7 @@ class MainframeApiService {
     try {
       const response = await fetch(`${BASE_URL}/sessions`);
       return await response.json();
-    } catch (error) {
+    } catch {
       return {
         success: false,
         sessions: [],
@@ -346,6 +381,50 @@ class MainframeApiService {
       return {
         success: false,
         message: `Submit JCL error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+    }
+  }
+
+  /**
+   * Poll job status from the READY prompt
+   */
+  async checkJobStatus(request: JobStatusRequest): Promise<JobStatusResponse> {
+    try {
+      const response = await fetch(`${BASE_URL}/job_status`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
+
+      return await response.json();
+    } catch (error) {
+      return {
+        success: false,
+        message: `Job status error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+    }
+  }
+
+  /**
+   * Retrieve job output and store it on the backend
+   */
+  async getJobOutput(request: JobOutputRequest): Promise<JobOutputResponse> {
+    try {
+      const response = await fetch(`${BASE_URL}/job_output`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
+
+      return await response.json();
+    } catch (error) {
+      return {
+        success: false,
+        message: `Job output error: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }

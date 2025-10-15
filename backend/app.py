@@ -11,6 +11,7 @@ import uuid
 import subprocess
 import time
 import sys
+import re
 from datetime import datetime
 from typing import Dict, Optional, List, Tuple
 
@@ -191,6 +192,196 @@ class S3270Session:
         """Get current screen content as text"""
         screen_content = self._execute_command('Ascii')
         return screen_content
+
+    def ensure_ready_prompt(self, max_attempts: int = 5, wait_seconds: float = 2.0) -> Tuple[bool, str]:
+        """Attempt to reach the READY prompt by issuing PF3 as needed"""
+        last_screen = ""
+        for _ in range(max_attempts):
+            screen = self.get_screen_text()
+            last_screen = screen
+            if 'READY' in screen.upper():
+                return True, screen
+            self._execute_command('PF(3)')
+            time.sleep(wait_seconds)
+        return 'READY' in last_screen.upper(), last_screen
+
+    def check_job_status(
+        self,
+        job_identifier: str,
+        max_attempts: int = 5,
+        wait_seconds: float = 5.0
+    ) -> Dict:
+        """Poll job status from the READY prompt until OUTPUT QUEUE or attempts exhausted"""
+        if not self.is_connected:
+            return {"success": False, "message": "Not connected to mainframe"}
+
+        if not self.is_logged_in:
+            return {"success": False, "message": "Not logged in to mainframe"}
+
+        identifier = job_identifier.strip()
+        if not identifier:
+            return {"success": False, "message": "Job identifier is required"}
+
+        ready, ready_screen = self.ensure_ready_prompt()
+        if not ready:
+            return {
+                "success": False,
+                "message": "Unable to reach READY prompt",
+                "screen_content": ready_screen
+            }
+
+        status_history: List[Dict[str, str]] = []
+        reached_output_queue = False
+        job_state: Optional[str] = None
+
+        for attempt in range(1, max_attempts + 1):
+            self._execute_command('Clear')
+            time.sleep(0.5)
+            self._execute_command(f'String("STATUS {identifier}")')
+            time.sleep(0.5)
+            self._execute_command('Enter')
+            time.sleep(3)
+
+            screen_content = self.get_screen_text()
+            screen_upper = screen_content.upper()
+            status_history.append({
+                "attempt": str(attempt),
+                "screen_content": screen_content
+            })
+
+            if 'NOT FOUND' in screen_upper or 'UNKNOWN JOB' in screen_upper:
+                return {
+                    "success": False,
+                    "message": f"Job {identifier} not found",
+                    "screen_content": screen_content,
+                    "attempts": attempt,
+                    "history": status_history
+                }
+
+            known_states = [
+                'OUTPUT QUEUE',
+                'INPUT QUEUE',
+                'ACTIVE',
+                'PRINT QUEUE',
+                'EXECUTING',
+                'WAITING',
+                'HELD'
+            ]
+            job_state = next((state for state in known_states if state in screen_upper), job_state)
+
+            if 'OUTPUT QUEUE' in screen_upper:
+                reached_output_queue = True
+                job_state = 'OUTPUT QUEUE'
+                return {
+                    "success": True,
+                    "message": f"Job {identifier} reached OUTPUT QUEUE",
+                    "job_identifier": identifier,
+                    "job_state": job_state,
+                    "screen_content": screen_content,
+                    "attempts": attempt,
+                    "history": status_history,
+                    "reached_output_queue": True
+                }
+
+            if attempt < max_attempts:
+                time.sleep(wait_seconds)
+
+        return {
+            "success": True,
+            "message": f"Status polling completed for {identifier}",
+            "job_identifier": identifier,
+            "job_state": job_state or "UNKNOWN",
+            "attempts": max_attempts,
+            "history": status_history,
+            "reached_output_queue": reached_output_queue
+        }
+
+    def get_job_output(
+        self,
+        job_identifier: str,
+        max_pages: int = 50
+    ) -> Dict:
+        """Retrieve job output pages and persist them to disk"""
+        if not self.is_connected:
+            return {"success": False, "message": "Not connected to mainframe"}
+
+        if not self.is_logged_in:
+            return {"success": False, "message": "Not logged in to mainframe"}
+
+        identifier = job_identifier.strip()
+        if not identifier:
+            return {"success": False, "message": "Job identifier is required"}
+
+        ready, ready_screen = self.ensure_ready_prompt()
+        if not ready:
+            return {
+                "success": False,
+                "message": "Unable to reach READY prompt",
+                "screen_content": ready_screen
+            }
+
+        self._execute_command('Clear')
+        time.sleep(0.5)
+        self._execute_command(f'String("OUTPUT {identifier}")')
+        time.sleep(0.5)
+        self._execute_command('Enter')
+        time.sleep(3)
+
+        pages: List[str] = []
+        cond_code: Optional[str] = None
+
+        for page in range(max_pages):
+            screen_content = self.get_screen_text()
+            screen_upper = screen_content.upper()
+            pages.append(screen_content)
+
+            if page == 0 and ('NOT FOUND' in screen_upper or 'NO OUTPUT AVAILABLE' in screen_upper):
+                return {
+                    "success": False,
+                    "message": f"No output available for {identifier}",
+                    "screen_content": screen_content,
+                    "pages": page + 1
+                }
+
+            cond_match = re.search(r'COND(?:ITION)?\s+CODE\s*[:=]\s*([A-Z0-9]+)', screen_content, re.IGNORECASE)
+            if not cond_code and cond_match:
+                cond_code = cond_match.group(1).strip()
+
+            if 'READY' in screen_upper and 'OUTPUT' not in screen_upper and page > 0:
+                break
+
+            if page + 1 >= max_pages:
+                break
+
+            time.sleep(1.5)
+            self._execute_command('Enter')
+            time.sleep(1.5)
+
+        output_text = "\n\n".join(pages)
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        output_dir = os.path.join(base_dir, 'downloads', 'job_outputs')
+        os.makedirs(output_dir, exist_ok=True)
+
+        sanitized_identifier = re.sub(r'[^A-Za-z0-9_.-]', '_', identifier)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f"{sanitized_identifier}_{timestamp}.txt"
+        file_path = os.path.join(output_dir, filename)
+
+        with open(file_path, 'w', encoding='utf-8', errors='ignore') as output_file:
+            output_file.write(output_text)
+
+        relative_path = os.path.relpath(file_path, start=base_dir)
+
+        return {
+            "success": True,
+            "message": f"Job output saved to {relative_path}",
+            "job_identifier": identifier,
+            "cond_code": cond_code,
+            "pages": len(pages),
+            "output_path": relative_path,
+            "screen_content": pages[-1] if pages else "",
+            "output_excerpt": pages[0] if pages else ""
+        }
 
     def login(self, username: str, password: str, login_type: str = 'standard') -> Dict:
         """Perform login to mainframe"""
@@ -1022,6 +1213,85 @@ def submit_jcl():
     jcl_dataset_name = data['jcl_dataset_name']
     session = sessions[session_id]['session']
     result = session.submit_jcl(jcl_dataset_name)
+
+    if result.get('success') and result.get('job_id'):
+        sessions[session_id]['last_job_identifier'] = result['job_id']
+
+    return jsonify(result)
+
+
+@app.route('/api/job_status', methods=['POST'])
+def job_status():
+    """Poll job status until OUTPUT QUEUE or attempts exhausted"""
+    data = request.get_json()
+    if not data or 'session_id' not in data:
+        return jsonify({"success": False, "message": "session_id is required"}), 400
+
+    session_id = data['session_id']
+    if session_id not in sessions:
+        return jsonify({"success": False, "message": "Invalid session"}), 404
+
+    update_session_access(session_id)
+    stored_identifier = sessions[session_id].get('last_job_identifier')
+    job_identifier = data.get('job_identifier') or stored_identifier
+
+    if not job_identifier:
+        return jsonify({"success": False, "message": "job_identifier is required"}), 400
+
+    try:
+        max_attempts = int(data.get('max_attempts') or 5)
+    except (TypeError, ValueError):
+        max_attempts = 5
+
+    try:
+        wait_seconds = float(data.get('wait_seconds') or 5.0)
+    except (TypeError, ValueError):
+        wait_seconds = 5.0
+
+    session = sessions[session_id]['session']
+    result = session.check_job_status(job_identifier, max_attempts, wait_seconds)
+
+    if result.get('success'):
+        sessions[session_id]['last_job_identifier'] = job_identifier
+        sessions[session_id]['last_job_status'] = {
+            'job_identifier': job_identifier,
+            'job_state': result.get('job_state'),
+            'reached_output_queue': result.get('reached_output_queue')
+        }
+
+    return jsonify(result)
+
+
+@app.route('/api/job_output', methods=['POST'])
+def job_output():
+    """Fetch job output and persist to downloads folder"""
+    data = request.get_json()
+    if not data or 'session_id' not in data:
+        return jsonify({"success": False, "message": "session_id is required"}), 400
+
+    session_id = data['session_id']
+    if session_id not in sessions:
+        return jsonify({"success": False, "message": "Invalid session"}), 404
+
+    update_session_access(session_id)
+    stored_identifier = sessions[session_id].get('last_job_identifier')
+    job_identifier = data.get('job_identifier') or stored_identifier
+
+    if not job_identifier:
+        return jsonify({"success": False, "message": "job_identifier is required"}), 400
+
+    try:
+        max_pages = int(data.get('max_pages') or 50)
+    except (TypeError, ValueError):
+        max_pages = 50
+
+    session = sessions[session_id]['session']
+    result = session.get_job_output(job_identifier, max_pages)
+
+    if result.get('success'):
+        sessions[session_id]['last_job_identifier'] = job_identifier
+        sessions[session_id]['last_job_output_path'] = result.get('output_path')
+        sessions[session_id]['last_job_cond_code'] = result.get('cond_code')
 
     return jsonify(result)
 
