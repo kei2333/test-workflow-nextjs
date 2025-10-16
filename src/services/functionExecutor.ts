@@ -93,6 +93,34 @@ export class FunctionExecutor {
           });
         }
 
+        // Log skipped tasks
+        const remainingTasks = workflowItems.length - (i + 1);
+        if (remainingTasks > 0) {
+          const skippedTasks = workflowItems.slice(i + 1).map(task => task.name).join(', ');
+          console.log(`⚠️ Stopping workflow execution due to failure in step ${i + 1} (${item.name})`);
+          console.log(`📋 ${remainingTasks} task(s) will be skipped: ${skippedTasks}`);
+
+          // Add a final result to indicate skipped tasks
+          const skippedResult: ExecutionResult = {
+            success: false,
+            message: `⚠️ ${remainingTasks} task(s) skipped due to previous failure: ${skippedTasks}`,
+            step: i + 2,
+            functionName: 'Workflow Execution',
+            executionTime: 0
+          };
+          results.push(skippedResult);
+
+          // Update progress with skipped info
+          if (onProgress) {
+            onProgress({
+              currentStep: i + 2,
+              totalSteps,
+              isRunning: false,
+              results: [...results]
+            });
+          }
+        }
+
         // Stop execution on first failure
         break;
       }
@@ -135,7 +163,7 @@ export class FunctionExecutor {
           const password = sanitizedInputs['Password'] || '';
 
           if (!host || !username || !password) {
-            return `${functionName}: Error - Host, User Name, and Password are required`;
+            throw new Error(`Host, User Name, and Password are required`);
           }
 
           // First connect to mainframe using s3270
@@ -161,14 +189,14 @@ export class FunctionExecutor {
               }
               return `${functionName}: Successfully connected to ${host}:${port} and logged in using ${loginType.toUpperCase()} login. User ${username} authenticated. Session ID: ${connectResponse.session_id.substring(0, 8)}...`;
             } else {
-              return `${functionName}: Connection successful but login failed: ${loginResponse.message}`;
+              throw new Error(`Login failed: ${loginResponse.message}`);
             }
           } else {
-            return `${functionName}: Failed to connect to mainframe: ${connectResponse.message}`;
+            throw new Error(`Failed to connect to mainframe: ${connectResponse.message}`);
           }
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          return `${functionName}: Error during mainframe connection/login: ${errorMessage}`;
+          throw new Error(`Error during mainframe connection/login: ${errorMessage}`);
         }
       
       case 'editjcl':
@@ -354,7 +382,7 @@ export class FunctionExecutor {
       }
 
       if (!sessionId) {
-        return `${functionName}: Error - No active mainframe session. Please login first.`;
+        throw new Error(`No active mainframe session. Please login first.`);
       }
 
       // Call the mainframe API to send file
@@ -368,7 +396,7 @@ export class FunctionExecutor {
       if (response.success) {
         return `${functionName}: File transfer completed successfully. Transferred '${windowsFileName}' from '${windowsFileLocation}' to mainframe dataset '${mainframeFileName}'. Bytes transferred: ${response.bytes_transferred || 0}.`;
       } else {
-        return `${functionName}: File transfer failed - ${response.message}`;
+        throw new Error(`File transfer failed - ${response.message}`);
       }
 
     } catch (error) {
@@ -397,7 +425,7 @@ export class FunctionExecutor {
       }
 
       if (!sessionId) {
-        return `${functionName}: Error - No active mainframe session. Please login first.`;
+        throw new Error(`No active mainframe session. Please login first.`);
       }
 
       // Call the mainframe API to get file
@@ -411,7 +439,7 @@ export class FunctionExecutor {
       if (response.success) {
         return `${functionName}: File import completed successfully. Retrieved '${mainframeFileName}' to '${windowsFileName}' at '${windowsFileLocation}'. Bytes received: ${response.bytes_received || 0}.`;
       } else {
-        return `${functionName}: File retrieval failed - ${response.message}`;
+        throw new Error(`File retrieval failed - ${response.message}`);
       }
 
     } catch (error) {
@@ -431,7 +459,7 @@ export class FunctionExecutor {
       }
 
       if (!sessionId) {
-        return `${functionName}: Error - No active mainframe session. Please login first.`;
+        throw new Error(`No active mainframe session. Please login first.`);
       }
 
       const jobIdModeRaw = inputs['Use Latest Job ID'] || '';
@@ -453,7 +481,7 @@ export class FunctionExecutor {
       }
 
       if (!jobIdentifier) {
-        return `${functionName}: Error - No job identifier available. Submit a job first or switch 'Use Latest Job ID' to custom and provide one.`;
+        throw new Error(`No job identifier available. Submit a job first or switch 'Use Latest Job ID' to custom and provide one.`);
       }
 
   const maxAttemptsValue = inputs['Max Attempts'] || '';
@@ -477,7 +505,7 @@ export class FunctionExecutor {
       });
 
       if (!statusResponse.success) {
-        return `${functionName}: Job status check failed - ${statusResponse.message}`;
+        throw new Error(`Job status check failed - ${statusResponse.message}`);
       }
 
       if (typeof window !== 'undefined') {
@@ -507,7 +535,7 @@ export class FunctionExecutor {
       });
 
       if (!outputResponse.success) {
-        return `${functionName}: Status check completed for ${jobIdentifier}. Latest detected state: ${state}. Attempts: ${attemptsUsed}. Source: ${jobIdSource}. Job output retrieval failed - ${outputResponse.message}`;
+        throw new Error(`Job output retrieval failed for ${jobIdentifier} (state: ${state}) - ${outputResponse.message}`);
       }
 
       if (typeof window !== 'undefined') {
@@ -547,7 +575,7 @@ export class FunctionExecutor {
       }
 
       if (!sessionId) {
-        return `${functionName}: Error - No active mainframe session. Please login with LogonISPF first.`;
+        throw new Error(`No active mainframe session. Please login with LogonISPF first.`);
       }
 
       // Call the mainframe API to submit JCL
@@ -565,7 +593,7 @@ export class FunctionExecutor {
         }
         return `${functionName}: Job: ${jobIdInfo} submitted successfully. The JCL submitted is '${jclDatasetName}'.`;
       } else {
-        return `${functionName}: JCL submission failed - ${response.message}`;
+        throw new Error(`JCL submission failed - ${response.message}`);
       }
 
     } catch (error) {
