@@ -383,7 +383,7 @@ class S3270Session:
 
         self._execute_command('Clear')
         time.sleep(0.5)
-        self._execute_command(f'String("OUTPUT {identifier}")')
+        self._execute_command(f'String("OUTPUT {identifier} KEEP")')
         time.sleep(0.5)
         self._execute_command('Enter')
         time.sleep(3)
