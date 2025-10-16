@@ -290,37 +290,46 @@ export default function Home() {
     clearLogs();
     addLog('info', '🚀 Starting workflow execution...');
 
+    // Track displayed results to avoid duplicates
+    let displayedResultsCount = 0;
+
     try {
       const results = await FunctionExecutor.executeWorkflow(
         workflowItems,
         (progress) => {
           setExecutionProgress(progress);
-          if (progress.currentStep <= workflowItems.length) {
+
+          // Check for new results and display them immediately
+          if (progress.results.length > displayedResultsCount) {
+            // Display all new results
+            for (let i = displayedResultsCount; i < progress.results.length; i++) {
+              const result = progress.results[i];
+              const stepName = workflowItems[i]?.name;
+              if (result.success) {
+                addLog('success', result.message, stepName);
+              } else {
+                addLog('error', result.message, stepName);
+              }
+            }
+            displayedResultsCount = progress.results.length;
+          }
+
+          // Show "Executing..." message only when starting a new step
+          // (when currentStep > results.length, meaning we're about to start a new step)
+          if (progress.currentStep > progress.results.length && progress.currentStep <= workflowItems.length) {
             const currentItem = workflowItems[progress.currentStep - 1];
             addLog('info', `⏳ Executing step ${progress.currentStep} of ${progress.totalSteps}...`, currentItem?.name);
           }
         }
       );
 
-      // Log results (only in execution log, avoid duplicate notifications)
-      results.forEach((result, index) => {
-        const stepName = workflowItems[index]?.name;
-        if (result.success) {
-          addLog('success', result.message, stepName);
-        } else {
-          addLog('error', result.message, stepName);
-        }
-      });
-
       const successCount = results.filter(r => r.success).length;
       const totalSteps = results.length;
-      
+
       if (successCount === totalSteps) {
         addLog('success', `✅ Workflow completed successfully! All ${totalSteps} steps executed.`);
-        // Success already logged in execution log
       } else {
         addLog('warning', `⚠️ Workflow completed with issues: ${successCount}/${totalSteps} steps succeeded.`);
-        // Warning already logged in execution log
       }
 
     } catch (error) {

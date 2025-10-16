@@ -18,7 +18,6 @@ export interface ExecutionProgress {
 }
 
 export class FunctionExecutor {
-  private static readonly STEP_DELAY = 1500; // ms between steps
   private static readonly DEFAULT_MAX_OUTPUT_PAGES = 50;
 
   static async executeWorkflow(
@@ -35,8 +34,8 @@ export class FunctionExecutor {
     for (let i = 0; i < workflowItems.length; i++) {
       const item = workflowItems[i];
       const startTime = Date.now();
-      
-      // Update progress
+
+      // Update progress - step starting
       if (onProgress) {
         onProgress({
           currentStep: i + 1,
@@ -47,9 +46,6 @@ export class FunctionExecutor {
       }
 
       try {
-        // Simulate execution delay
-        await new Promise(resolve => setTimeout(resolve, this.STEP_DELAY));
-        
         const message = await this.executeFunction(item.functionId, item.name, item.inputs);
         const executionTime = Date.now() - startTime;
 
@@ -63,10 +59,20 @@ export class FunctionExecutor {
 
         results.push(result);
 
+        // Update progress immediately after step completes
+        if (onProgress) {
+          onProgress({
+            currentStep: i + 1,
+            totalSteps,
+            isRunning: true,
+            results: [...results]
+          });
+        }
+
       } catch (error) {
         const executionTime = Date.now() - startTime;
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-        
+
         const result: ExecutionResult = {
           success: false,
           message: `Failed to execute ${item.name}: ${errorMessage}`,
@@ -76,7 +82,17 @@ export class FunctionExecutor {
         };
 
         results.push(result);
-        
+
+        // Update progress immediately after error
+        if (onProgress) {
+          onProgress({
+            currentStep: i + 1,
+            totalSteps,
+            isRunning: false,
+            results: [...results]
+          });
+        }
+
         // Stop execution on first failure
         break;
       }
