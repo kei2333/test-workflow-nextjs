@@ -113,8 +113,12 @@ class S3270Session:
                 bufsize=0
             )
 
-            # Wait longer for slow connections to establish
-            time.sleep(5)
+            # Wait for connection to establish with intelligent waiting
+            connect_start = time.time()
+            print(f"\n[CONNECTION] Starting connection to {host}:{port} at {datetime.now().strftime('%H:%M:%S.%f')[:-3]}")
+
+            # Initial short delay to let connection start
+            time.sleep(1.0)
 
             # Check if process is still running (successful connection)
             if self.process.poll() is None:
@@ -122,11 +126,14 @@ class S3270Session:
                 self.port = port
                 self.is_connected = True
 
-                # Get initial screen content with much longer timeout for slow connections
+                # Use intelligent wait for initial screen with appropriate timeout
                 timeout = 60 if host == 'localhost' and port == 3270 else 30
-                initial_screen = self._execute_command('Ascii', timeout)
+                success, initial_screen, wait_time = self._wait_for_screen_ready(timeout=timeout, poll_interval=0.5)
 
-                return True, f"Successfully connected to {host}:{port} using s3270"
+                connect_elapsed = time.time() - connect_start
+                print(f"[CONNECTION] Successfully connected | Screen ready: {wait_time:.2f}s | Total: {connect_elapsed:.2f}s\n")
+
+                return True, f"Successfully connected to {host}:{port} using s3270 (took {connect_elapsed:.2f}s)"
             else:
                 stderr_output = self.process.stderr.read()
                 return False, f"Connection failed: {stderr_output}"
@@ -192,6 +199,60 @@ class S3270Session:
         """Get current screen content as text"""
         screen_content = self._execute_command('Ascii')
         return screen_content
+
+    def _wait_for_screen_ready(self, timeout: float = 10.0, poll_interval: float = 0.5) -> Tuple[bool, str, float]:
+        """
+        Wait for screen content to stabilize (stop changing)
+        Returns: (success, final_screen_content, elapsed_time)
+        """
+        start_time = time.time()
+        last_screen = ""
+        stable_count = 0
+        required_stable_checks = 2  # Screen must be stable for 2 consecutive checks
+
+        while time.time() - start_time < timeout:
+            current_screen = self.get_screen_text()
+
+            if current_screen == last_screen:
+                stable_count += 1
+                if stable_count >= required_stable_checks:
+                    elapsed = time.time() - start_time
+                    return True, current_screen, elapsed
+            else:
+                stable_count = 0
+                last_screen = current_screen
+
+            time.sleep(poll_interval)
+
+        # Timeout reached
+        elapsed = time.time() - start_time
+        return False, last_screen, elapsed
+
+    def _wait_for_screen_content(self, expected_content: str, timeout: float = 10.0, poll_interval: float = 0.5, case_sensitive: bool = False) -> Tuple[bool, str, float]:
+        """
+        Wait for specific content to appear on screen
+        Returns: (success, screen_content, elapsed_time)
+        """
+        start_time = time.time()
+
+        while time.time() - start_time < timeout:
+            screen = self.get_screen_text()
+
+            # Check if expected content is present
+            if case_sensitive:
+                if expected_content in screen:
+                    elapsed = time.time() - start_time
+                    return True, screen, elapsed
+            else:
+                if expected_content.upper() in screen.upper():
+                    elapsed = time.time() - start_time
+                    return True, screen, elapsed
+
+            time.sleep(poll_interval)
+
+        # Timeout reached
+        elapsed = time.time() - start_time
+        return False, screen, elapsed
 
     def ensure_ready_prompt(self, max_attempts: int = 5, wait_seconds: float = 2.0) -> Tuple[bool, str]:
         """Attempt to reach the READY prompt by issuing PF3 as needed"""
@@ -400,93 +461,119 @@ class S3270Session:
             except UnicodeEncodeError:
                 print("DEBUG: Initial screen content received (contains special characters)")
 
-            # TSO-based login flow for IBM mainframes
+            # TSO-based login flow for IBM mainframes with intelligent waiting and performance logging
             if login_type == 'tso':
-                # Step 1: Wait for initial screen
-                time.sleep(2)
+                login_start_time = time.time()
+                print(f"\n{'='*60}")
+                print(f"[TSO LOGIN PERFORMANCE] Starting TSO login at {datetime.now().strftime('%H:%M:%S.%f')[:-3]}")
+                print(f"{'='*60}\n")
 
-                # Get initial screen
-                screen_1 = self.get_screen_text()
+                # Step 1: Get initial screen (no artificial delay needed)
+                step_start = time.time()
+                success, screen_1, wait_time = self._wait_for_screen_ready(timeout=5.0, poll_interval=0.3)
+                step_elapsed = time.time() - step_start
                 try:
-                    print(f"DEBUG: Step 1 - Initial screen:\n{screen_1}")
+                    print(f"[STEP 1] Initial screen ready | Wait: {wait_time:.2f}s | Total: {step_elapsed:.2f}s")
+                    print(f"Screen preview: {screen_1[:200]}...")
                 except UnicodeEncodeError:
-                    print("DEBUG: Step 1 - Initial screen received")
+                    print(f"[STEP 1] Initial screen ready | Wait: {wait_time:.2f}s | Total: {step_elapsed:.2f}s")
 
                 # Step 2: Type TSO and press Enter
+                step_start = time.time()
                 self._execute_command('String("TSO")')
-                time.sleep(2.0)
+                time.sleep(0.3)  # Small delay for command to register
                 self._execute_command('Enter')
-                time.sleep(15)  # Wait much longer for slow TSO response
 
-                # Get screen after TSO
-                screen_2 = self.get_screen_text()
+                # Wait for TSO screen (intelligent wait instead of fixed 15s)
+                success, screen_2, wait_time = self._wait_for_screen_ready(timeout=20.0, poll_interval=0.5)
+                step_elapsed = time.time() - step_start
                 try:
-                    print(f"DEBUG: Step 2 - After TSO screen:\n{screen_2}")
+                    print(f"[STEP 2] TSO command sent, screen ready | Wait: {wait_time:.2f}s | Total: {step_elapsed:.2f}s")
+                    print(f"Screen preview: {screen_2[:200]}...")
                 except UnicodeEncodeError:
-                    print("DEBUG: Step 2 - After TSO screen received")
+                    print(f"[STEP 2] TSO command sent, screen ready | Wait: {wait_time:.2f}s | Total: {step_elapsed:.2f}s")
 
                 # Step 3: Type username and press Enter
+                step_start = time.time()
                 self._execute_command(f'String("{username}")')
-                time.sleep(2.0)
+                time.sleep(0.3)
                 self._execute_command('Enter')
-                time.sleep(15)  # Wait much longer for username processing
 
-                # Get screen after username
-                screen_3 = self.get_screen_text()
+                # Wait for username processing (intelligent wait instead of fixed 15s)
+                success, screen_3, wait_time = self._wait_for_screen_ready(timeout=20.0, poll_interval=0.5)
+                step_elapsed = time.time() - step_start
                 try:
-                    print(f"DEBUG: Step 3 - After username screen:\n{screen_3}")
+                    print(f"[STEP 3] Username sent, screen ready | Wait: {wait_time:.2f}s | Total: {step_elapsed:.2f}s")
+                    print(f"Screen preview: {screen_3[:200]}...")
                 except UnicodeEncodeError:
-                    print("DEBUG: Step 3 - After username screen received")
+                    print(f"[STEP 3] Username sent, screen ready | Wait: {wait_time:.2f}s | Total: {step_elapsed:.2f}s")
 
                 # Step 4: Type password and press Enter
+                step_start = time.time()
                 self._execute_command(f'String("{password}")')
-                time.sleep(2.0)
+                time.sleep(0.3)
                 self._execute_command('Enter')
-                time.sleep(20)  # Wait much longer for authentication
 
-                # Get screen after password
-                screen_4 = self.get_screen_text()
+                # Wait for authentication (intelligent wait instead of fixed 20s)
+                success, screen_4, wait_time = self._wait_for_screen_ready(timeout=25.0, poll_interval=0.5)
+                step_elapsed = time.time() - step_start
                 try:
-                    print(f"DEBUG: Step 4 - After password screen:\n{screen_4}")
+                    print(f"[STEP 4] Password sent, authentication complete | Wait: {wait_time:.2f}s | Total: {step_elapsed:.2f}s")
+                    print(f"Screen preview: {screen_4[:200]}...")
                 except UnicodeEncodeError:
-                    print("DEBUG: Step 4 - After password screen received")
+                    print(f"[STEP 4] Password sent, authentication complete | Wait: {wait_time:.2f}s | Total: {step_elapsed:.2f}s")
 
                 # Step 5: Press Enter (for /)
+                step_start = time.time()
                 self._execute_command('Enter')
-                time.sleep(10)  # Wait much longer for screen to update
 
-                # Get screen after first Enter
-                screen_5 = self.get_screen_text()
+                # Wait for screen update (intelligent wait instead of fixed 10s)
+                success, screen_5, wait_time = self._wait_for_screen_ready(timeout=15.0, poll_interval=0.5)
+                step_elapsed = time.time() - step_start
                 try:
-                    print(f"DEBUG: Step 5 - After first Enter screen:\n{screen_5}")
+                    print(f"[STEP 5] First Enter sent, screen ready | Wait: {wait_time:.2f}s | Total: {step_elapsed:.2f}s")
+                    print(f"Screen preview: {screen_5[:200]}...")
                 except UnicodeEncodeError:
-                    print("DEBUG: Step 5 - After first Enter screen received")
+                    print(f"[STEP 5] First Enter sent, screen ready | Wait: {wait_time:.2f}s | Total: {step_elapsed:.2f}s")
 
                 # Step 6: Press Enter again
+                step_start = time.time()
                 self._execute_command('Enter')
-                time.sleep(10)  # Wait much longer for screen to update
 
-                # Get screen after second Enter
-                screen_6 = self.get_screen_text()
+                # Wait for screen update (intelligent wait instead of fixed 10s)
+                success, screen_6, wait_time = self._wait_for_screen_ready(timeout=15.0, poll_interval=0.5)
+                step_elapsed = time.time() - step_start
                 try:
-                    print(f"DEBUG: Step 6 - After second Enter screen:\n{screen_6}")
+                    print(f"[STEP 6] Second Enter sent, screen ready | Wait: {wait_time:.2f}s | Total: {step_elapsed:.2f}s")
+                    print(f"Screen preview: {screen_6[:200]}...")
                 except UnicodeEncodeError:
-                    print("DEBUG: Step 6 - After second Enter screen received")
+                    print(f"[STEP 6] Second Enter sent, screen ready | Wait: {wait_time:.2f}s | Total: {step_elapsed:.2f}s")
 
                 # Step 7: Type ISPF and press Enter (final step for complete connection)
+                step_start = time.time()
                 self._execute_command('String("ISPF")')
-                time.sleep(2.0)
+                time.sleep(0.3)
                 self._execute_command('Enter')
-                time.sleep(30)  # Wait very long for ISPF to load on very slow systems
 
-                # Get screen after ISPF
-                screen_7 = self.get_screen_text()
+                # Wait for ISPF to load (intelligent wait instead of fixed 30s)
+                success, screen_7, wait_time = self._wait_for_screen_ready(timeout=35.0, poll_interval=0.5)
+                step_elapsed = time.time() - step_start
                 try:
-                    print(f"DEBUG: Step 7 - After ISPF screen:\n{screen_7}")
+                    print(f"[STEP 7] ISPF command sent, ISPF loaded | Wait: {wait_time:.2f}s | Total: {step_elapsed:.2f}s")
+                    print(f"Screen preview: {screen_7[:200]}...")
                     sys.stdout.flush()
                 except UnicodeEncodeError:
-                    print("DEBUG: Step 7 - After ISPF screen received")
+                    print(f"[STEP 7] ISPF command sent, ISPF loaded | Wait: {wait_time:.2f}s | Total: {step_elapsed:.2f}s")
                     sys.stdout.flush()
+
+                # Print performance summary
+                total_login_time = time.time() - login_start_time
+                print(f"\n{'='*60}")
+                print(f"[TSO LOGIN PERFORMANCE SUMMARY]")
+                print(f"Total login time: {total_login_time:.2f}s")
+                print(f"Completed at: {datetime.now().strftime('%H:%M:%S.%f')[:-3]}")
+                print(f"{'='*60}\n")
+                sys.stdout.flush()
 
             # TK5 specific login handling
             elif self.host == 'localhost' and self.port == 3270:
