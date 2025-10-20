@@ -32,69 +32,50 @@ export const InputConfigModal: React.FC<InputConfigModalProps> = ({
 
   useEffect(() => {
     if (functionData) {
-      // Initialize input values with config values if available, otherwise use placeholders
-      const initializeInputs = async () => {
-        const initialInputs: Record<string, string> = {};
-        
-        // Try to load config for LogonISPF function
-        if (functionData.id === 'logonispf') {
-          try {
-            const response = await fetch('/api/config');
-            if (response.ok) {
-              const configData = await response.json();
-              if (configData.mainframe) {
-                // Map config values to input fields
-                functionData.inputs.forEach(input => {
-                  switch (input.name) {
-                    case 'Host':
-                      initialInputs[input.name] = configData.mainframe.host || input.placeholder;
-                      break;
-                    case 'Port':
-                      initialInputs[input.name] = configData.mainframe.port?.toString() || input.placeholder;
-                      break;
-                    case 'Login Type':
-                      initialInputs[input.name] = configData.mainframe.loginType || resolveDefaultValue(input);
-                      break;
-                    case 'User Name':
-                      initialInputs[input.name] = configData.mainframe.username || input.placeholder;
-                      break;
-                    case 'Password':
-                      initialInputs[input.name] = configData.mainframe.password || input.placeholder;
-                      break;
-                    default:
-                      initialInputs[input.name] = resolveDefaultValue(input);
-                  }
-                });
-              } else {
-                // Use placeholders if no config
-                functionData.inputs.forEach(input => {
-                  initialInputs[input.name] = resolveDefaultValue(input);
-                });
-              }
-            } else {
-              // Use placeholders if no config file
-              functionData.inputs.forEach(input => {
-                initialInputs[input.name] = resolveDefaultValue(input);
-              });
-            }
-          } catch (error) {
-            console.log('Failed to load config for workflow, using placeholders', error);
-            functionData.inputs.forEach(input => {
+      // Initialize input values from environment variables or placeholders
+      const initialInputs: Record<string, string> = {};
+
+      if (functionData.id === 'logonispf') {
+        functionData.inputs.forEach(input => {
+          switch (input.name) {
+            case 'Host':
+              initialInputs[input.name] = process.env.NEXT_PUBLIC_MAINFRAME_HOST || input.placeholder || '';
+              break;
+            case 'Port':
+              initialInputs[input.name] = process.env.NEXT_PUBLIC_MAINFRAME_PORT || input.placeholder || '';
+              break;
+            case 'Login Type':
+              initialInputs[input.name] = process.env.NEXT_PUBLIC_MAINFRAME_LOGIN_TYPE || resolveDefaultValue(input);
+              break;
+            case 'User Name':
+              initialInputs[input.name] = process.env.NEXT_PUBLIC_MAINFRAME_USERNAME || input.placeholder || '';
+              break;
+            case 'Password':
+              initialInputs[input.name] = process.env.NEXT_PUBLIC_MAINFRAME_PASSWORD || input.placeholder || '';
+              break;
+            default:
               initialInputs[input.name] = resolveDefaultValue(input);
-            });
           }
-        } else {
-          // For non-LogonISPF functions, use placeholders
-          functionData.inputs.forEach(input => {
-            initialInputs[input.name] = resolveDefaultValue(input);
-          });
-        }
-        
-        setInputValues(initialInputs);
-        setErrors({});
-      };
-      
-      initializeInputs();
+        });
+      } else if (functionData.id === 'getfile') {
+        functionData.inputs.forEach(input => {
+          switch (input.name) {
+            case 'Mainframe File Name':
+              initialInputs[input.name] = process.env.NEXT_PUBLIC_MAINFRAME_TEST_FILE || input.placeholder || '';
+              break;
+            default:
+              initialInputs[input.name] = resolveDefaultValue(input);
+          }
+        });
+      } else {
+        // For other functions, use placeholders
+        functionData.inputs.forEach(input => {
+          initialInputs[input.name] = resolveDefaultValue(input);
+        });
+      }
+
+      setInputValues(initialInputs);
+      setErrors({});
     }
   }, [functionData]);
 
