@@ -208,7 +208,7 @@ class S3270Session:
         start_time = time.time()
         last_screen = ""
         stable_count = 0
-        required_stable_checks = 2  # Screen must be stable for 2 consecutive checks
+        required_stable_checks = 1  # Screen must be stable for 1 check (reduced from 2 for faster response)
 
         while time.time() - start_time < timeout:
             current_screen = self.get_screen_text()
