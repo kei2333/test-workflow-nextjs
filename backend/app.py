@@ -536,41 +536,33 @@ class S3270Session:
                 except UnicodeEncodeError:
                     print(f"[STEP 5] First Enter sent, screen ready | Wait: {wait_time:.2f}s | Total: {step_elapsed:.2f}s")
 
-                # Step 6: Press Enter again
+                # Step 6: Press Enter again (final step - ends at READY prompt)
                 step_start = time.time()
                 self._execute_command('Enter')
 
-                # Wait for screen update (intelligent wait instead of fixed 10s)
+                # Wait for READY prompt (intelligent wait instead of fixed 10s)
                 success, screen_6, wait_time = self._wait_for_screen_ready(timeout=15.0, poll_interval=0.5)
                 step_elapsed = time.time() - step_start
                 try:
-                    print(f"[STEP 6] Second Enter sent, screen ready | Wait: {wait_time:.2f}s | Total: {step_elapsed:.2f}s")
+                    print(f"[STEP 6] Second Enter sent, READY prompt reached | Wait: {wait_time:.2f}s | Total: {step_elapsed:.2f}s")
                     print(f"Screen preview: {screen_6[:200]}...")
-                except UnicodeEncodeError:
-                    print(f"[STEP 6] Second Enter sent, screen ready | Wait: {wait_time:.2f}s | Total: {step_elapsed:.2f}s")
-
-                # Step 7: Type ISPF and press Enter (final step for complete connection)
-                step_start = time.time()
-                self._execute_command('String("ISPF")')
-                time.sleep(0.3)
-                self._execute_command('Enter')
-
-                # Wait for ISPF to load (intelligent wait instead of fixed 30s)
-                success, screen_7, wait_time = self._wait_for_screen_ready(timeout=35.0, poll_interval=0.5)
-                step_elapsed = time.time() - step_start
-                try:
-                    print(f"[STEP 7] ISPF command sent, ISPF loaded | Wait: {wait_time:.2f}s | Total: {step_elapsed:.2f}s")
-                    print(f"Screen preview: {screen_7[:200]}...")
                     sys.stdout.flush()
                 except UnicodeEncodeError:
-                    print(f"[STEP 7] ISPF command sent, ISPF loaded | Wait: {wait_time:.2f}s | Total: {step_elapsed:.2f}s")
+                    print(f"[STEP 6] Second Enter sent, READY prompt reached | Wait: {wait_time:.2f}s | Total: {step_elapsed:.2f}s")
                     sys.stdout.flush()
+
+                # Verify READY prompt
+                if 'READY' in screen_6.upper():
+                    print(f"[STEP 6] [OK] READY prompt confirmed")
+                else:
+                    print(f"[STEP 6] [WARN] Warning: READY prompt not found in screen")
+                sys.stdout.flush()
 
                 # Print performance summary
                 total_login_time = time.time() - login_start_time
                 print(f"\n{'='*60}")
                 print(f"[TSO LOGIN PERFORMANCE SUMMARY]")
-                print(f"Total login time: {total_login_time:.2f}s")
+                print(f"Total login time: {total_login_time:.2f}s (ends at READY prompt)")
                 print(f"Completed at: {datetime.now().strftime('%H:%M:%S.%f')[:-3]}")
                 print(f"{'='*60}\n")
                 sys.stdout.flush()
@@ -729,15 +721,8 @@ class S3270Session:
         if not os.path.exists(local_path):
             return {"success": False, "message": f"Local file not found: {local_path}"}
 
-        # Transfer command requires cursor to be in a field that accepts TSO commands
-        # Need to go back to READY prompt if we're in ISPF
-        print("Ensuring we're at READY prompt for Transfer command...")
-        self._execute_command('PF(3)')  # Exit ISPF to READY
-
-        # Use Wait(Output) to ensure screen is updated (better than sleep)
-        wait_result = self._send_command('Wait(5,Output)', timeout=10)
-        if wait_result["status"] != "ok":
-            print("Warning: Wait(Output) timed out, screen might not be ready")
+        # Verify we're at READY prompt (LoginISPF should leave us here)
+        print("Verifying READY prompt for Transfer command...")
 
         # Use Snap mechanism for consistent screen reading
         self._execute_command('Snap(Save)')
@@ -746,8 +731,9 @@ class S3270Session:
 
         # Check if we're at READY prompt
         if "READY" not in screen:
-            print("Warning: Not at READY prompt, Transfer might fail")
+            print("Error: Not at READY prompt, Transfer will fail")
             print(f"Current screen preview: {screen[:200]}")
+            return {"success": False, "message": "Not at READY prompt. Please ensure you are logged in to TSO."}
 
         # Ensure the local path is absolute and properly formatted for the command
         abs_local_path = os.path.abspath(local_path)
@@ -794,15 +780,8 @@ class S3270Session:
         if not self.is_connected:
             return {"success": False, "message": "Not connected to mainframe"}
 
-        # Transfer command requires cursor to be in a field that accepts TSO commands
-        # Need to go back to READY prompt if we're in ISPF
-        print("Ensuring we're at READY prompt for Transfer command...")
-        self._execute_command('PF(3)')  # Exit ISPF to READY
-
-        # Use Wait(Output) to ensure screen is updated (better than sleep)
-        wait_result = self._send_command('Wait(5,Output)', timeout=10)
-        if wait_result["status"] != "ok":
-            print("Warning: Wait(Output) timed out, screen might not be ready")
+        # Verify we're at READY prompt (LoginISPF should leave us here)
+        print("Verifying READY prompt for Transfer command...")
 
         # Use Snap mechanism for consistent screen reading
         self._execute_command('Snap(Save)')
@@ -811,8 +790,9 @@ class S3270Session:
 
         # Check if we're at READY prompt
         if "READY" not in screen:
-            print("Warning: Not at READY prompt, Transfer might fail")
+            print("Error: Not at READY prompt, Transfer will fail")
             print(f"Current screen preview: {screen[:200]}")
+            return {"success": False, "message": "Not at READY prompt. Please ensure you are logged in to TSO."}
 
         # Create local directory if it doesn't exist
         local_dir = os.path.dirname(local_path)
@@ -882,54 +862,61 @@ class S3270Session:
             # Get current screen to see where we are
             initial_screen = self.get_screen_text()
             try:
-                print(f"DEBUG: JCL Submit Step 0 - Initial screen:\n{initial_screen}")
+                print(f"\n{'='*60}")
+                print(f"[JCL SUBMIT DEBUG] Step 0 - Initial screen state:")
+                print(f"{'='*60}")
+                print(initial_screen)
+                print(f"{'='*60}\n")
                 sys.stdout.flush()
             except UnicodeEncodeError:
-                print("DEBUG: JCL Submit Step 0 - Initial screen received")
+                print("[JCL SUBMIT DEBUG] Step 0 - Initial screen received (unicode error)")
                 sys.stdout.flush()
 
-            # Step 1: Press F3 to exit ISPF and return to TSO READY prompt
-            self._execute_command('PF(3)')
-            time.sleep(3)
-
-            # Get screen after F3
-            screen_1 = self.get_screen_text()
-            try:
-                print(f"DEBUG: JCL Submit Step 1 - After F3 screen:\n{screen_1}")
+            # Step 1: Verify we're at READY prompt (LoginISPF should leave us here)
+            initial_upper = initial_screen.upper()
+            if 'READY' not in initial_upper:
+                print("[JCL SUBMIT DEBUG] [FAIL] READY prompt not found at start")
+                print(f"[JCL SUBMIT DEBUG] Screen indicators: ISPF={('ISPF' in initial_upper)}, READY={('READY' in initial_upper)}, MENU={('MENU' in initial_upper)}")
                 sys.stdout.flush()
-            except UnicodeEncodeError:
-                print("DEBUG: JCL Submit Step 1 - After F3 screen received")
-                sys.stdout.flush()
-
-            # Check if READY prompt appears
-            if 'READY' not in screen_1.upper():
                 return {
                     "success": False,
-                    "message": "READY prompt not found after F3. Please ensure you are in ISPF.",
-                    "screen_content": screen_1
+                    "message": "Not at READY prompt. Please ensure you are logged in to TSO.",
+                    "screen_content": initial_screen
                 }
+
+            print("[JCL SUBMIT DEBUG] [OK] READY prompt confirmed, proceeding with SUB command...")
+            sys.stdout.flush()
 
             # Step 2: Type SUB command with JCL dataset name
             sub_command = f"sub '{jcl_dataset_name}'"
+            print(f"[JCL SUBMIT DEBUG] Typing command: {sub_command}")
+            sys.stdout.flush()
             self._execute_command(f'String("{sub_command}")')
             time.sleep(0.5)
 
             # Step 3: Press Enter to submit the JCL
+            print("[JCL SUBMIT DEBUG] Pressing Enter to submit JCL...")
+            sys.stdout.flush()
             self._execute_command('Enter')
-            time.sleep(3)
 
-            # Get screen after Enter
-            screen_3 = self.get_screen_text()
+            # Use intelligent wait instead of fixed sleep
+            success, screen_3, wait_time = self._wait_for_screen_ready(timeout=10.0, poll_interval=0.5)
+
             try:
-                print(f"DEBUG: JCL Submit Step 3 - After Enter (submission):\n{screen_3}")
+                print(f"\n{'='*60}")
+                print(f"[JCL SUBMIT DEBUG] Step 3 - After submission (wait: {wait_time:.2f}s):")
+                print(f"{'='*60}")
+                print(screen_3)
+                print(f"{'='*60}\n")
                 sys.stdout.flush()
             except UnicodeEncodeError:
-                print("DEBUG: JCL Submit Step 3 - After Enter screen received")
+                print(f"[JCL SUBMIT DEBUG] Step 3 - After submission screen received (wait: {wait_time:.2f}s, unicode error)")
                 sys.stdout.flush()
 
             # Check for success indicators
             screen_3_upper = screen_3.upper()
 
+            # Look for job submission confirmation
             if 'SUBMITTED' in screen_3_upper and 'JOB' in screen_3_upper:
                 # Extract job ID - match anything between "JOB " and " SUBMITTED"
                 job_id = "Unknown"
@@ -938,6 +925,9 @@ class S3270Session:
                 if job_match:
                     job_id = job_match.group(1).strip()
 
+                print(f"[JCL SUBMIT DEBUG] [OK] Job submitted successfully: {job_id}")
+                sys.stdout.flush()
+
                 return {
                     "success": True,
                     "message": f"JCL job submitted successfully",
@@ -945,12 +935,17 @@ class S3270Session:
                     "screen_content": screen_3
                 }
             elif 'ERROR' in screen_3_upper or 'INVALID' in screen_3_upper or 'FAILED' in screen_3_upper or 'NOT FOUND' in screen_3_upper:
+                print(f"[JCL SUBMIT DEBUG] [FAIL] Submission failed - error detected in screen")
+                sys.stdout.flush()
                 return {
                     "success": False,
                     "message": "JCL submission failed - check screen content for errors",
                     "screen_content": screen_3
                 }
             else:
+                print(f"[JCL SUBMIT DEBUG] [FAIL] Submission result unclear")
+                print(f"[JCL SUBMIT DEBUG] Screen contains: SUBMITTED={('SUBMITTED' in screen_3_upper)}, JOB={('JOB' in screen_3_upper)}, READY={('READY' in screen_3_upper)}")
+                sys.stdout.flush()
                 return {
                     "success": False,
                     "message": "JCL submission result unclear - please check screen content",
