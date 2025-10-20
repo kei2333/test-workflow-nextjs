@@ -733,8 +733,16 @@ class S3270Session:
         # Need to go back to READY prompt if we're in ISPF
         print("Ensuring we're at READY prompt for Transfer command...")
         self._execute_command('PF(3)')  # Exit ISPF to READY
-        time.sleep(1)
-        screen = self.get_screen_text()
+
+        # Use Wait(Output) to ensure screen is updated (better than sleep)
+        wait_result = self._send_command('Wait(5,Output)', timeout=10)
+        if wait_result["status"] != "ok":
+            print("Warning: Wait(Output) timed out, screen might not be ready")
+
+        # Use Snap mechanism for consistent screen reading
+        self._execute_command('Snap(Save)')
+        snap_result = self._send_command('Snap(Ascii)')
+        screen = snap_result.get("data", "") if snap_result["status"] == "ok" else ""
 
         # Check if we're at READY prompt
         if "READY" not in screen:
@@ -748,15 +756,21 @@ class S3270Session:
         if sys.platform == "win32":
             abs_local_path = abs_local_path.replace('\\', '/')
 
+        # Get local file size for reporting
+        local_file_size = os.path.getsize(local_path)
+
         # Construct the Transfer command
         # Based on x3270 documentation: parameters are option=value format
         # TSO dataset names need to be wrapped in single quotes for IND$FILE
+        # BufferSize: larger values give better performance (256-32768)
         transfer_command = (
             f"Transfer(Direction=send,LocalFile={abs_local_path},"
-            f"HostFile='{mainframe_dataset}',Host={host_type.lower()},Mode={transfer_mode.lower()})"
+            f"HostFile='{mainframe_dataset}',Host={host_type.lower()},Mode={transfer_mode.lower()},"
+            f"BufferSize=8192,Exist=replace)"
         )
 
         print(f"Executing transfer command: {transfer_command}")
+        print(f"Uploading {local_file_size} bytes to {mainframe_dataset}")
 
         # Execute the command using a longer timeout for file transfers
         result = self._send_command(transfer_command, timeout=300)  # 5-minute timeout
@@ -766,7 +780,7 @@ class S3270Session:
             return {
                 "success": True,
                 "message": f"File transfer completed for {mainframe_dataset}.",
-                "details": result.get("data", "No additional details from s3270.")
+                "details": f"Uploaded {local_file_size} bytes. {result.get('data', '')}"
             }
         else:
             return {
@@ -784,8 +798,16 @@ class S3270Session:
         # Need to go back to READY prompt if we're in ISPF
         print("Ensuring we're at READY prompt for Transfer command...")
         self._execute_command('PF(3)')  # Exit ISPF to READY
-        time.sleep(1)
-        screen = self.get_screen_text()
+
+        # Use Wait(Output) to ensure screen is updated (better than sleep)
+        wait_result = self._send_command('Wait(5,Output)', timeout=10)
+        if wait_result["status"] != "ok":
+            print("Warning: Wait(Output) timed out, screen might not be ready")
+
+        # Use Snap mechanism for consistent screen reading
+        self._execute_command('Snap(Save)')
+        snap_result = self._send_command('Snap(Ascii)')
+        screen = snap_result.get("data", "") if snap_result["status"] == "ok" else ""
 
         # Check if we're at READY prompt
         if "READY" not in screen:
@@ -806,9 +828,11 @@ class S3270Session:
         # Construct the Transfer command
         # Based on x3270 documentation: parameters are option=value format
         # TSO dataset names need to be wrapped in single quotes for IND$FILE
+        # BufferSize: larger values give better performance (256-32768)
         transfer_command = (
             f"Transfer(Direction=receive,HostFile='{mainframe_dataset}',"
-            f"LocalFile={abs_local_path},Host={host_type.lower()},Mode={transfer_mode.lower()})"
+            f"LocalFile={abs_local_path},Host={host_type.lower()},Mode={transfer_mode.lower()},"
+            f"BufferSize=8192,Exist=replace)"
         )
 
         print(f"Executing transfer command: {transfer_command}")
@@ -817,11 +841,20 @@ class S3270Session:
         result = self._send_command(transfer_command, timeout=300)  # 5-minute timeout
 
         if result["status"] == "ok":
-            return {
-                "success": True,
-                "message": f"File successfully retrieved from {mainframe_dataset} to {local_path}",
-                "details": result.get("data", "No additional details from s3270.")
-            }
+            # Verify file was actually downloaded
+            if os.path.exists(local_path):
+                file_size = os.path.getsize(local_path)
+                return {
+                    "success": True,
+                    "message": f"File successfully retrieved from {mainframe_dataset} to {local_path}",
+                    "details": f"File size: {file_size} bytes. {result.get('data', '')}"
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": "File retrieval reported success but file not found.",
+                    "details": result.get("data", "")
+                }
         else:
             return {
                 "success": False,
