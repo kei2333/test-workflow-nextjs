@@ -189,7 +189,8 @@ export class FunctionExecutor {
               }
               return `${functionName}: Successfully connected to ${host}:${port} and logged in using ${loginType.toUpperCase()} login. User ${username} authenticated. Session ID: ${connectResponse.session_id.substring(0, 8)}...`;
             } else {
-              throw new Error(`Login failed: ${loginResponse.message}`);
+              const detailedMessage = loginResponse.message || 'Unable to complete login.';
+              throw new Error(detailedMessage);
             }
           } else {
             throw new Error(`Failed to connect to mainframe: ${connectResponse.message}`);
@@ -593,12 +594,12 @@ export class FunctionExecutor {
         }
         return `${functionName}: Job: ${jobIdInfo} submitted successfully. The JCL submitted is '${jclDatasetName}'.`;
       } else {
-        throw new Error(`JCL submission failed - ${response.message}`);
+        throw new Error(`JCL submission failed for '${jclDatasetName}' - ${response.message}`);
       }
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(`Failed to submit JCL: ${errorMessage}`);
+      throw new Error(`Failed to submit JCL '${jclDatasetName}': ${errorMessage}`);
     }
   }
 }

@@ -522,6 +522,26 @@ class S3270Session:
                     print(f"Screen preview: {screen_4[:200]}...")
                 except UnicodeEncodeError:
                     print(f"[STEP 4] Password sent, authentication complete | Wait: {wait_time:.2f}s | Total: {step_elapsed:.2f}s")
+                
+                # Check for login rejection errors immediately after password
+                screen_4_upper = screen_4.upper()
+                if 'LOGON REJECTED' in screen_4_upper or 'ALREADY LOGGED ON' in screen_4_upper:
+                    print(f"[STEP 4] [ERROR] Login rejected - user already logged on or access denied")
+                    sys.stdout.flush()
+
+                    rejection_line = next(
+                        (ln.strip() for ln in screen_4.splitlines() if 'IKJ' in ln.upper() or 'LOGON' in ln.upper()),
+                        ''
+                    )
+                    detailed_message = (
+                        rejection_line if rejection_line else 'User already logged on to the system.'
+                    )
+
+                    return {
+                        "success": False,
+                        "message": f"User {username} is already logged on elsewhere. {detailed_message}",
+                        "screen_content": screen_4
+                    }
 
                 # Step 5: Press Enter (for /)
                 step_start = time.time()
@@ -627,6 +647,20 @@ class S3270Session:
 
             login_screen_upper = login_result_screen.upper()
 
+            if 'LOGON REJECTED' in login_screen_upper or 'ALREADY LOGGED ON' in login_screen_upper:
+                rejection_line = next(
+                    (ln.strip() for ln in login_result_screen.splitlines() if 'IKJ' in ln.upper() or 'LOGON' in ln.upper()),
+                    ''
+                )
+                detailed_message = (
+                    rejection_line if rejection_line else 'User already logged on to the system.'
+                )
+                return {
+                    "success": False,
+                    "message": f"User {username} is already logged on elsewhere. {detailed_message}",
+                    "screen_content": login_result_screen
+                }
+
             if any(indicator in login_screen_upper for indicator in success_indicators):
                 self.is_logged_in = True
                 return {
@@ -635,9 +669,13 @@ class S3270Session:
                     "screen_content": login_result_screen
                 }
             elif any(indicator in login_screen_upper for indicator in error_indicators):
+                error_line = next(
+                    (ln.strip() for ln in login_result_screen.splitlines() if ln.strip()),
+                    ''
+                )
                 return {
                     "success": False,
-                    "message": "Login failed - invalid credentials",
+                    "message": f"Login failed - {error_line if error_line else 'invalid credentials or access denied'}",
                     "screen_content": login_result_screen
                 }
             else:
@@ -948,8 +986,9 @@ class S3270Session:
                 sys.stdout.flush()
                 return {
                     "success": False,
-                    "message": "JCL submission result unclear - please check screen content",
-                    "screen_content": screen_3
+                    "message": f"JCL submission for '{jcl_dataset_name}' result unclear - Screen: {screen_3[:150]}...",
+                    "screen_content": screen_3,
+                    "jcl_dataset": jcl_dataset_name
                 }
 
         except Exception as e:
