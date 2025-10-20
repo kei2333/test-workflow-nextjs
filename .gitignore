@@ -26,6 +26,13 @@
 
 # backend runtime artifacts
 backend/downloads/
+backend/__pycache__/
+
+# downloaded files
+downloads/
+
+# screenshots
+*.png
 
 # debug
 npm-debug.log*

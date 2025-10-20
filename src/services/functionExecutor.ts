@@ -411,7 +411,7 @@ export class FunctionExecutor {
   ): Promise<string> {
     try {
       // Extract parameters
-      const mainframeFileName = inputs['Mainframe File Name'] || 'SHIPRA.TEST.FILE2';
+      const mainframeFileName = inputs['Mainframe File Name'] || 'TRA026.FLAT.FILEIN';
       const windowsFileName = inputs['Windows File name'] || 'File1';
       const windowsFileLocation = inputs['Windows File Location'] || './downloads';
 

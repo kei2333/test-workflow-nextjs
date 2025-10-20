@@ -6,15 +6,15 @@
     "inputs": [
       {
         "name": "Host",
-        "placeholder": ""
+        "placeholder": "localhost"
       },
       {
         "name": "Port",
-        "placeholder": ""
+        "placeholder": "3270"
       },
       {
         "name": "Login Type",
-        "placeholder": "standard",
+        "placeholder": "tso",
         "type": "radio",
         "options": [
           {
@@ -31,11 +31,11 @@
       },
       {
         "name": "User Name",
-        "placeholder": ""
+        "placeholder": "HERC01"
       },
       {
         "name": "Password",
-        "placeholder": ""
+        "placeholder": "CUL8TR"
       }
     ]
   },
@@ -265,16 +265,16 @@
     "description": "Import Utility",
     "inputs": [
       {
+        "name": "Mainframe File Name",
+        "placeholder": "USER.DATA.FILE"
+      },
+      {
         "name": "Windows File name",
-        "placeholder": "File1"
+        "placeholder": "downloaded_file.txt"
       },
       {
         "name": "Windows File Location",
-        "placeholder": "File location"
-      },
-      {
-        "name": "Mainframe File Name",
-        "placeholder": "File2(SHIPRA.TEST.FILE2)"
+        "placeholder": "./downloads"
       }
     ]
   },

@@ -721,161 +721,113 @@ class S3270Session:
         except Exception as e:
             return {"success": False, "message": f"Function key error: {str(e)}"}
 
-    def send_file_to_mainframe(self, local_path: str, mainframe_dataset: str, transfer_mode: str = 'ascii') -> Dict:
-        """Send file from Windows to Mainframe using IND$FILE"""
+    def send_file_to_mainframe(self, local_path: str, mainframe_dataset: str, transfer_mode: str = 'ascii', host_type: str = 'tso') -> Dict:
+        """Send file from local to Mainframe using the s3270 Transfer action."""
         if not self.is_connected:
             return {"success": False, "message": "Not connected to mainframe"}
 
-        try:
-            # Validate local file exists
-            if not os.path.exists(local_path):
-                return {"success": False, "message": f"Local file not found: {local_path}"}
+        if not os.path.exists(local_path):
+            return {"success": False, "message": f"Local file not found: {local_path}"}
 
-            # Read local file content
-            with open(local_path, 'rb') as f:
-                file_content = f.read()
+        # Transfer command requires cursor to be in a field that accepts TSO commands
+        # Need to go back to READY prompt if we're in ISPF
+        print("Ensuring we're at READY prompt for Transfer command...")
+        self._execute_command('PF(3)')  # Exit ISPF to READY
+        time.sleep(1)
+        screen = self.get_screen_text()
 
-            # Determine transfer mode (ASCII or BINARY)
-            mode_flag = 'ascii' if transfer_mode.lower() == 'ascii' else 'binary'
+        # Check if we're at READY prompt
+        if "READY" not in screen:
+            print("Warning: Not at READY prompt, Transfer might fail")
+            print(f"Current screen preview: {screen[:200]}")
 
-            # Use IND$FILE protocol via s3270
-            # Navigate to TSO/ISPF command line (assuming already logged in)
-            self._execute_command('Clear')
-            time.sleep(0.5)
+        # Ensure the local path is absolute and properly formatted for the command
+        abs_local_path = os.path.abspath(local_path)
 
-            # Type IND$FILE command to receive file on mainframe
-            indfile_cmd = f'IND$FILE PUT {mainframe_dataset} {mode_flag}'
-            self._execute_command(f'String("{indfile_cmd}")')
-            time.sleep(0.5)
+        # On Windows, s3270 (from wc3270) often expects forward slashes.
+        if sys.platform == "win32":
+            abs_local_path = abs_local_path.replace('\\', '/')
 
-            # Press Enter to start transfer
-            self._execute_command('Enter')
-            time.sleep(1)
+        # Construct the Transfer command
+        # Based on x3270 documentation: parameters are option=value format
+        # TSO dataset names need to be wrapped in single quotes for IND$FILE
+        transfer_command = (
+            f"Transfer(Direction=send,LocalFile={abs_local_path},"
+            f"HostFile='{mainframe_dataset}',Host={host_type.lower()},Mode={transfer_mode.lower()})"
+        )
 
-            # Send file data in chunks
-            chunk_size = 4096
-            total_bytes = len(file_content)
-            bytes_sent = 0
+        print(f"Executing transfer command: {transfer_command}")
 
-            for i in range(0, total_bytes, chunk_size):
-                chunk = file_content[i:i+chunk_size]
-                # Convert binary data to string if in ASCII mode
-                if transfer_mode.lower() == 'ascii':
-                    try:
-                        chunk_str = chunk.decode('utf-8')
-                        self._execute_command(f'String("{chunk_str}")')
-                    except UnicodeDecodeError:
-                        return {"success": False, "message": "File contains non-ASCII characters, use binary mode"}
-                else:
-                    # For binary mode, send as hex string
-                    hex_str = chunk.hex()
-                    self._execute_command(f'String("{hex_str}")')
+        # Execute the command using a longer timeout for file transfers
+        result = self._send_command(transfer_command, timeout=300)  # 5-minute timeout
 
-                bytes_sent += len(chunk)
-                time.sleep(0.1)
-
-            # Signal end of file transfer
-            self._execute_command('Enter')
-            time.sleep(2)
-
-            # Get screen to check transfer result
-            result_screen = self.get_screen_text()
-
-            # Check for success indicators
-            if 'TRANSFER COMPLETE' in result_screen.upper() or 'FILE TRANSFERRED' in result_screen.upper():
-                return {
-                    "success": True,
-                    "message": f"File transferred successfully to {mainframe_dataset}",
-                    "bytes_transferred": bytes_sent,
-                    "screen_content": result_screen
-                }
-            else:
-                return {
-                    "success": False,
-                    "message": "File transfer may have failed, check screen output",
-                    "screen_content": result_screen
-                }
-
-        except Exception as e:
-            return {"success": False, "message": f"File transfer error: {str(e)}"}
-
-    def get_file_from_mainframe(self, mainframe_dataset: str, local_path: str, transfer_mode: str = 'ascii') -> Dict:
-        """Get file from Mainframe to Windows using IND$FILE"""
-        if not self.is_connected:
-            return {"success": False, "message": "Not connected to mainframe"}
-
-        try:
-            # Determine transfer mode
-            mode_flag = 'ascii' if transfer_mode.lower() == 'ascii' else 'binary'
-
-            # Use IND$FILE protocol via s3270
-            self._execute_command('Clear')
-            time.sleep(0.5)
-
-            # Type IND$FILE command to send file from mainframe
-            indfile_cmd = f'IND$FILE GET {mainframe_dataset} {mode_flag}'
-            self._execute_command(f'String("{indfile_cmd}")')
-            time.sleep(0.5)
-
-            # Press Enter to start transfer
-            self._execute_command('Enter')
-            time.sleep(2)
-
-            # Receive file data
-            # This is a simplified implementation - actual IND$FILE protocol is more complex
-            file_data = []
-            max_attempts = 100
-            attempts = 0
-
-            while attempts < max_attempts:
-                screen_content = self.get_screen_text()
-
-                # Check for transfer complete
-                if 'TRANSFER COMPLETE' in screen_content.upper() or 'FILE TRANSFERRED' in screen_content.upper():
-                    break
-
-                # Extract data from screen (this is simplified)
-                # In real implementation, you'd need to parse the actual data stream
-                if screen_content.strip():
-                    file_data.append(screen_content)
-
-                # Send Enter to get next screen/chunk
-                self._execute_command('Enter')
-                time.sleep(0.5)
-                attempts += 1
-
-            # Combine received data
-            received_content = '\n'.join(file_data)
-
-            # Create local directory if it doesn't exist
-            local_dir = os.path.dirname(local_path)
-            if local_dir and not os.path.exists(local_dir):
-                os.makedirs(local_dir)
-
-            # Write to local file
-            write_mode = 'w' if transfer_mode.lower() == 'ascii' else 'wb'
-            with open(local_path, write_mode) as f:
-                if transfer_mode.lower() == 'ascii':
-                    f.write(received_content)
-                else:
-                    # For binary mode, convert from hex string
-                    try:
-                        binary_data = bytes.fromhex(received_content)
-                        f.write(binary_data)
-                    except ValueError:
-                        f.write(received_content.encode('utf-8'))
-
-            bytes_received = len(received_content)
-
+        if result["status"] == "ok":
+            # The data part of the response often contains transfer statistics
             return {
                 "success": True,
-                "message": f"File retrieved successfully from {mainframe_dataset}",
-                "bytes_received": bytes_received,
-                "local_path": local_path
+                "message": f"File transfer completed for {mainframe_dataset}.",
+                "details": result.get("data", "No additional details from s3270.")
+            }
+        else:
+            return {
+                "success": False,
+                "message": "File transfer failed.",
+                "details": result.get("data", "Unknown error.")
             }
 
-        except Exception as e:
-            return {"success": False, "message": f"File retrieval error: {str(e)}"}
+    def get_file_from_mainframe(self, mainframe_dataset: str, local_path: str, transfer_mode: str = 'ascii', host_type: str = 'tso') -> Dict:
+        """Get file from Mainframe to local using the s3270 Transfer action."""
+        if not self.is_connected:
+            return {"success": False, "message": "Not connected to mainframe"}
+
+        # Transfer command requires cursor to be in a field that accepts TSO commands
+        # Need to go back to READY prompt if we're in ISPF
+        print("Ensuring we're at READY prompt for Transfer command...")
+        self._execute_command('PF(3)')  # Exit ISPF to READY
+        time.sleep(1)
+        screen = self.get_screen_text()
+
+        # Check if we're at READY prompt
+        if "READY" not in screen:
+            print("Warning: Not at READY prompt, Transfer might fail")
+            print(f"Current screen preview: {screen[:200]}")
+
+        # Create local directory if it doesn't exist
+        local_dir = os.path.dirname(local_path)
+        if local_dir and not os.path.exists(local_dir):
+            os.makedirs(local_dir)
+
+        abs_local_path = os.path.abspath(local_path)
+
+        # On Windows, s3270 might need forward slashes
+        if sys.platform == "win32":
+            abs_local_path = abs_local_path.replace('\\', '/')
+
+        # Construct the Transfer command
+        # Based on x3270 documentation: parameters are option=value format
+        # TSO dataset names need to be wrapped in single quotes for IND$FILE
+        transfer_command = (
+            f"Transfer(Direction=receive,HostFile='{mainframe_dataset}',"
+            f"LocalFile={abs_local_path},Host={host_type.lower()},Mode={transfer_mode.lower()})"
+        )
+
+        print(f"Executing transfer command: {transfer_command}")
+
+        # Execute the command with a longer timeout
+        result = self._send_command(transfer_command, timeout=300)  # 5-minute timeout
+
+        if result["status"] == "ok":
+            return {
+                "success": True,
+                "message": f"File successfully retrieved from {mainframe_dataset} to {local_path}",
+                "details": result.get("data", "No additional details from s3270.")
+            }
+        else:
+            return {
+                "success": False,
+                "message": "File retrieval failed.",
+                "details": result.get("data", "Unknown error.")
+            }
 
     def submit_jcl(self, jcl_dataset_name: str) -> Dict:
         """
@@ -1258,9 +1210,10 @@ def send_file():
     local_path = data['local_path']
     mainframe_dataset = data['mainframe_dataset']
     transfer_mode = data.get('transfer_mode', 'ascii')
+    host_type = data.get('host_type', 'tso')
 
     session = sessions[session_id]['session']
-    result = session.send_file_to_mainframe(local_path, mainframe_dataset, transfer_mode)
+    result = session.send_file_to_mainframe(local_path, mainframe_dataset, transfer_mode, host_type)
 
     return jsonify(result)
 
@@ -1279,9 +1232,10 @@ def get_file():
     mainframe_dataset = data['mainframe_dataset']
     local_path = data['local_path']
     transfer_mode = data.get('transfer_mode', 'ascii')
+    host_type = data.get('host_type', 'tso')
 
     session = sessions[session_id]['session']
-    result = session.get_file_from_mainframe(mainframe_dataset, local_path, transfer_mode)
+    result = session.get_file_from_mainframe(mainframe_dataset, local_path, transfer_mode, host_type)
 
     return jsonify(result)
 
