@@ -565,10 +565,10 @@ export class FunctionExecutor {
     functionName: string,
     inputs: Record<string, string>
   ): Promise<string> {
-    try {
-      // Extract parameters
-      const jclDatasetName = inputs['JCL Dataset Name'] || 'TRA026.TEST.JCL(FILECR)';
+    // Extract parameters outside try block so it's accessible in catch
+    const jclDatasetName = inputs['JCL Dataset Name'] || 'TRA026.TEST.JCL(FILECR)';
 
+    try {
       // Get active session ID from localStorage
       let sessionId = '';
       if (typeof window !== 'undefined') {
