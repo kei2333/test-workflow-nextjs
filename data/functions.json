@@ -247,15 +247,15 @@
     "inputs": [
       {
         "name": "Windows File name",
-        "placeholder": "File1"
+        "placeholder": "tosend.txt"
       },
       {
         "name": "Windows File Location",
-        "placeholder": "File location"
+        "placeholder": "./uploads"
       },
       {
         "name": "Mainframe File Name",
-        "placeholder": "File2(SHIPRA.TEST.FILE2)"
+        "placeholder": "TRA026.TEST.FILESND"
       }
     ]
   },
