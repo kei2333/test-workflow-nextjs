@@ -16,7 +16,7 @@ from datetime import datetime
 from typing import Dict, Optional, List, Tuple
 
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://192.168.2.109:3000"]}})
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 # Global sessions storage
 sessions = {}
