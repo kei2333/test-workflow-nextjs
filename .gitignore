@@ -70,3 +70,5 @@ test-config.json
 test-logs/
 playwright-report/
 test-results/
+
+/TK5/
