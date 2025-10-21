@@ -757,8 +757,18 @@ class S3270Session:
         if not self.is_connected:
             return {"success": False, "message": "Not connected to mainframe"}
 
-        if not os.path.exists(local_path):
-            return {"success": False, "message": f"Local file not found: {local_path}"}
+        # Resolve local_path relative to project root (not current working directory)
+        # This ensures paths work correctly whether running from project root or backend dir
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+        # If path is relative, resolve it from project root
+        if not os.path.isabs(local_path):
+            abs_local_path = os.path.join(project_root, local_path)
+        else:
+            abs_local_path = local_path
+
+        if not os.path.exists(abs_local_path):
+            return {"success": False, "message": f"Local file not found: {abs_local_path}"}
 
         # Verify we're at READY prompt (LoginISPF should leave us here)
         print("Verifying READY prompt for Transfer command...")
@@ -774,15 +784,12 @@ class S3270Session:
             print(f"Current screen preview: {screen[:200]}")
             return {"success": False, "message": "Not at READY prompt. Please ensure you are logged in to TSO."}
 
-        # Ensure the local path is absolute and properly formatted for the command
-        abs_local_path = os.path.abspath(local_path)
-
         # On Windows, s3270 (from wc3270) often expects forward slashes.
         if sys.platform == "win32":
             abs_local_path = abs_local_path.replace('\\', '/')
 
         # Get local file size for reporting
-        local_file_size = os.path.getsize(local_path)
+        local_file_size = os.path.getsize(abs_local_path)
 
         # Construct the Transfer command
         # Based on x3270 documentation: parameters are option=value format
@@ -833,12 +840,20 @@ class S3270Session:
             print(f"Current screen preview: {screen[:200]}")
             return {"success": False, "message": "Not at READY prompt. Please ensure you are logged in to TSO."}
 
+        # Resolve local_path relative to project root (not current working directory)
+        # This ensures paths work correctly whether running from project root or backend dir
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+        # If path is relative, resolve it from project root
+        if not os.path.isabs(local_path):
+            abs_local_path = os.path.join(project_root, local_path)
+        else:
+            abs_local_path = local_path
+
         # Create local directory if it doesn't exist
-        local_dir = os.path.dirname(local_path)
+        local_dir = os.path.dirname(abs_local_path)
         if local_dir and not os.path.exists(local_dir):
             os.makedirs(local_dir)
-
-        abs_local_path = os.path.abspath(local_path)
 
         # On Windows, s3270 might need forward slashes
         if sys.platform == "win32":
@@ -861,11 +876,11 @@ class S3270Session:
 
         if result["status"] == "ok":
             # Verify file was actually downloaded
-            if os.path.exists(local_path):
-                file_size = os.path.getsize(local_path)
+            if os.path.exists(abs_local_path):
+                file_size = os.path.getsize(abs_local_path)
                 return {
                     "success": True,
-                    "message": f"File successfully retrieved from {mainframe_dataset} to {local_path}",
+                    "message": f"File successfully retrieved from {mainframe_dataset} to {abs_local_path}",
                     "details": f"File size: {file_size} bytes. {result.get('data', '')}"
                 }
             else:
