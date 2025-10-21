@@ -419,7 +419,8 @@ class S3270Session:
             time.sleep(1.5)
 
         output_text = "\n\n".join(pages)
-        base_dir = os.path.dirname(os.path.abspath(__file__))
+        # Use project root directory for downloads (unified with Next.js uploads directory)
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         output_dir = os.path.join(base_dir, 'downloads', 'job_outputs')
         os.makedirs(output_dir, exist_ok=True)
 
