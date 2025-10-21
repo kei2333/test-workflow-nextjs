@@ -251,7 +251,7 @@
       },
       {
         "name": "Windows File Location",
-        "placeholder": "./uploads"
+        "placeholder": "uploads"
       },
       {
         "name": "Mainframe File Name",
@@ -274,7 +274,7 @@
       },
       {
         "name": "Windows File Location",
-        "placeholder": "./downloads"
+        "placeholder": "downloads"
       }
     ]
   },

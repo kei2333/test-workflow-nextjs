@@ -370,7 +370,7 @@ export class FunctionExecutor {
     try {
       // Extract parameters
       const windowsFileName = inputs['Windows File name'] || 'File1';
-      const windowsFileLocation = inputs['Windows File Location'] || './';
+      const windowsFileLocation = inputs['Windows File Location'] || 'uploads';
       const mainframeFileName = inputs['Mainframe File Name'] || 'SHIPRA.TEST.FILE2';
 
       // Construct full local path
