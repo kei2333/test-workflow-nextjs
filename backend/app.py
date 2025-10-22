@@ -680,8 +680,14 @@ class S3270Session:
             # NOTE: Check errors FIRST to avoid false positives
             # Some error screens contain words like 'TSO' or 'LOGON' which should not be treated as success
 
-            # Success indicators - only clear success messages
-            success_indicators = ['READY', 'ISPF PRIMARY OPTION MENU', 'ISPF MAIN MENU', 'COMMAND', 'HERCULES']
+            # Success indicators - messages that indicate successful authentication
+            success_indicators = [
+                'READY',                    # TSO READY prompt
+                'ISPF PRIMARY OPTION MENU', # ISPF main menu
+                'ISPF MAIN MENU',          # Alternative ISPF menu text
+                'COMMAND',                  # Command prompt
+                'HERCULES',                 # Hercules system
+            ]
 
             # Error indicators - comprehensive list of failure messages
             error_indicators = [
@@ -736,14 +742,32 @@ class S3270Session:
                     "screen_content": login_result_screen
                 }
 
-            # Priority 4: If no clear success or error indicators, assume FAILURE (secure by default)
-            # This is safer than assuming success
-            print(f"[LOGIN] Failed - No clear success indicators found in screen")
-            print(f"[LOGIN] Screen preview: {login_result_screen[:200]}")
+            # Priority 3.5: Check if we've returned to the initial login screen
+            # When authentication fails, mainframe often returns to initial screen without explicit error
+            initial_screen_indicators = [
+                'ENTER YOUR USERID:',
+                'PASSWORD:                              NEW PASSWORD:',
+                'APPLICATION REQUIRED. NO INSTALLATION DEFAULT'
+            ]
+            if all(indicator in login_screen_upper for indicator in initial_screen_indicators):
+                print(f"[LOGIN] Failed - Returned to initial login screen (credentials rejected)")
+                print(f"[LOGIN] This indicates authentication failed without explicit error message")
+                sys.stdout.flush()
+                return {
+                    "success": False,
+                    "message": f"Authentication failed - Invalid username or password",
+                    "screen_content": login_result_screen
+                }
+
+            # Priority 4: If we reach here, login failed
+            # We must see explicit success indicators (READY, ISPF menu, etc.) to confirm success
+            # Without these indicators, we cannot confirm authentication succeeded
+            print(f"[LOGIN] Failed - No success indicators found (no READY prompt or ISPF menu)")
+            print(f"[LOGIN] Authentication requires explicit success confirmation")
             sys.stdout.flush()
             return {
                 "success": False,
-                "message": "Login verification failed - unable to confirm successful authentication. Please check credentials and try again.",
+                "message": "Login failed - No success confirmation received",
                 "screen_content": login_result_screen
             }
 
