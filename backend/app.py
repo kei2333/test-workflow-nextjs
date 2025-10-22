@@ -509,6 +509,40 @@ class S3270Session:
                 except UnicodeEncodeError:
                     print(f"[STEP 3] Username sent, screen ready | Wait: {wait_time:.2f}s | Total: {step_elapsed:.2f}s")
 
+                # Check for username-related errors immediately after STEP 3
+                # This prevents password from being sent if username is already invalid
+                screen_3_upper = screen_3.upper()
+                username_error_indicators = [
+                    'NOT AUTHORIZED',
+                    'INVALID USERID',
+                    'INVALID USER',
+                    'UNKNOWN USER',
+                    'IKJ56420I',  # TSO error: user not authorized
+                    'IKJ56710I',  # TSO error: invalid userid
+                    'ACCESS DENIED',
+                    'USER NOT FOUND'
+                ]
+
+                if any(error in screen_3_upper for error in username_error_indicators):
+                    # Determine the specific error type for user-friendly message
+                    if 'NOT AUTHORIZED' in screen_3_upper or 'IKJ56420I' in screen_3_upper:
+                        user_friendly_message = f"Username '{username}' is not authorized to use this system"
+                    elif 'INVALID USERID' in screen_3_upper or 'IKJ56710I' in screen_3_upper:
+                        user_friendly_message = f"Username '{username}' is invalid"
+                    elif 'ACCESS DENIED' in screen_3_upper:
+                        user_friendly_message = f"Access denied for username '{username}'"
+                    else:
+                        user_friendly_message = f"Username '{username}' authentication failed"
+
+                    print(f"[STEP 3] [ERROR] Username validation failed: {user_friendly_message}")
+                    sys.stdout.flush()
+
+                    return {
+                        "success": False,
+                        "message": user_friendly_message,
+                        "screen_content": screen_3
+                    }
+
                 # Step 4: Type password and press Enter
                 step_start = time.time()
                 self._execute_command(f'String("{password}")')
@@ -642,12 +676,24 @@ class S3270Session:
             except UnicodeEncodeError:
                 print("DEBUG: Final login screen received")
 
-            # Check for common success indicators in screen content
-            success_indicators = ['READY', 'ISPF', 'MAIN MENU', 'TSO', 'LOGON', 'COMMAND', 'HERCULES']
-            error_indicators = ['INVALID', 'ERROR', 'FAILED', 'INCORRECT', 'NOT AUTHORIZED']
+            # Check for error/success indicators in screen content
+            # NOTE: Check errors FIRST to avoid false positives
+            # Some error screens contain words like 'TSO' or 'LOGON' which should not be treated as success
+
+            # Success indicators - only clear success messages
+            success_indicators = ['READY', 'ISPF PRIMARY OPTION MENU', 'ISPF MAIN MENU', 'COMMAND', 'HERCULES']
+
+            # Error indicators - comprehensive list of failure messages
+            error_indicators = [
+                'INVALID', 'ERROR', 'FAILED', 'INCORRECT',
+                'NOT AUTHORIZED', 'REJECTED', 'DENIED', 'UNAUTHORIZED',
+                'NOT VALID', 'ACCESS DENIED', 'INVALID USERID',
+                'INVALID PASSWORD', 'LOGON REJECTED', 'ALREADY LOGGED ON'
+            ]
 
             login_screen_upper = login_result_screen.upper()
 
+            # Priority 1: Check for specific rejection cases (already logged on)
             if 'LOGON REJECTED' in login_screen_upper or 'ALREADY LOGGED ON' in login_screen_upper:
                 rejection_line = next(
                     (ln.strip() for ln in login_result_screen.splitlines() if 'IKJ' in ln.upper() or 'LOGON' in ln.upper()),
@@ -656,37 +702,50 @@ class S3270Session:
                 detailed_message = (
                     rejection_line if rejection_line else 'User already logged on to the system.'
                 )
+                print(f"[LOGIN] Failed - User already logged on: {username}")
+                sys.stdout.flush()
                 return {
                     "success": False,
                     "message": f"User {username} is already logged on elsewhere. {detailed_message}",
                     "screen_content": login_result_screen
                 }
 
+            # Priority 2: Check for error indicators (BEFORE checking success)
+            # This prevents false positives when error screens contain words like 'TSO' or 'LOGON'
+            if any(indicator in login_screen_upper for indicator in error_indicators):
+                error_line = next(
+                    (ln.strip() for ln in login_result_screen.splitlines() if 'IKJ' in ln.upper() or any(err.upper() in ln.upper() for err in error_indicators)),
+                    'Authentication failed'
+                )
+                print(f"[LOGIN] Failed - Error detected in screen: {error_line[:100]}")
+                sys.stdout.flush()
+                return {
+                    "success": False,
+                    "message": f"Login failed - {error_line}",
+                    "screen_content": login_result_screen
+                }
+
+            # Priority 3: Check for success indicators
             if any(indicator in login_screen_upper for indicator in success_indicators):
                 self.is_logged_in = True
+                print(f"[LOGIN] Success - User {username} logged in successfully")
+                sys.stdout.flush()
                 return {
                     "success": True,
                     "message": "Login successful",
                     "screen_content": login_result_screen
                 }
-            elif any(indicator in login_screen_upper for indicator in error_indicators):
-                error_line = next(
-                    (ln.strip() for ln in login_result_screen.splitlines() if ln.strip()),
-                    ''
-                )
-                return {
-                    "success": False,
-                    "message": f"Login failed - {error_line if error_line else 'invalid credentials or access denied'}",
-                    "screen_content": login_result_screen
-                }
-            else:
-                # Assume success if no explicit error
-                self.is_logged_in = True
-                return {
-                    "success": True,
-                    "message": "Login completed",
-                    "screen_content": login_result_screen
-                }
+
+            # Priority 4: If no clear success or error indicators, assume FAILURE (secure by default)
+            # This is safer than assuming success
+            print(f"[LOGIN] Failed - No clear success indicators found in screen")
+            print(f"[LOGIN] Screen preview: {login_result_screen[:200]}")
+            sys.stdout.flush()
+            return {
+                "success": False,
+                "message": "Login verification failed - unable to confirm successful authentication. Please check credentials and try again.",
+                "screen_content": login_result_screen
+            }
 
         except Exception as e:
             return {"success": False, "message": f"Login error: {str(e)}"}
