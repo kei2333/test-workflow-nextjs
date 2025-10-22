@@ -277,20 +277,34 @@ function startProcess(startCmd, cwd, name) {
 
   const child = spawn(startCmd.command, startCmd.args, spawnOptions);
 
-  // 显示启动信息但不显示所有输出
+  // 显示后端启动信息
   let startupComplete = false;
 
   child.stdout.on('data', (data) => {
     const output = data.toString();
-    if (!startupComplete && (output.includes('Ready') || output.includes('listening') || output.includes('started'))) {
-      console.log(`[INFO] ${name} 启动信息: ${output.trim()}`);
-      startupComplete = true;
+    // 对于后端服务器，显示所有启动相关的输出
+    if (name === '后端服务器') {
+      // 显示 Python 后端的启动信息
+      if (output.includes('Starting') || output.includes('s3270') ||
+          output.includes('Session auto-cleanup') || output.includes('Running on') ||
+          output.includes('WARNING') || output.includes('listening')) {
+        console.log(`[${name}] ${output.trim()}`);
+      }
+    } else {
+      // 前端服务器保持原样
+      if (!startupComplete && (output.includes('Ready') || output.includes('listening') || output.includes('started'))) {
+        console.log(`[INFO] ${name} 启动信息: ${output.trim()}`);
+        startupComplete = true;
+      }
     }
   });
 
   child.stderr.on('data', (data) => {
     const error = data.toString();
-    if (error.includes('Error') || error.includes('error')) {
+    // 对于后端服务器，显示所有 stderr 输出（Flask 的启动信息在 stderr）
+    if (name === '后端服务器') {
+      console.log(`[${name}] ${error.trim()}`);
+    } else if (error.includes('Error') || error.includes('error')) {
       console.log(`[WARN] ${name} 错误信息: ${error.trim()}`);
     }
   });
