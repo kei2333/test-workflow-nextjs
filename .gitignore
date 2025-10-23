@@ -49,9 +49,6 @@ temp/
 CLAUDE.md
 test-config.json
 
-# Log files
-test-logs/
-
 # Test directories
 tk5/
 
