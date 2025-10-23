@@ -32,3 +32,19 @@ downloads/
 # Temporary files
 tmp/
 temp/
+
+# Vercel
+.vercel/
+
+# Configuration files
+CLAUDE.md
+test-config.json
+
+# Log files
+test-logs/
+
+# Test directories
+tk5/
+
+# Next.js types
+next-env.d.ts
