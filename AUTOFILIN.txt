@@ -1,0 +1,2 @@
+POL000000000001 20250101SMALLCAR            PREMIUM             20010101GOLD OWN                                                                      
+POL000000000002 20250101MEDIUMCAR           DOMESTIC            19950101BLUE FAMILY                                                                   
