@@ -309,30 +309,15 @@ TK5提供本地IBM大型机环境，无需网络连接即可测试。
 **Important**: Make sure you're in the project directory (test-workflow-nextjs folder in Git Bash).
 **重要**: 确保您在项目目录中（Git Bash中的test-workflow-nextjs文件夹）。
 
-1. **Create Python Virtual Environment**:
+1. **Install Python Packages**:
    ```bash
-   python -m venv .venv
-   ```
-   - This creates a new Python virtual environment for the project
-
-2. **Activate Python Environment**:
-   ```bash
-   .venv/Scripts/activate
-   ```
-   - Your prompt will change to show `(.venv)` at the beginning
-
-3. **Install Python Packages**:
-   ```bash
-   cd backend
    pip install flask flask-cors py3270 python-dotenv
    ```
    - This installs all required packages for the mainframe backend
+   - This may take 1-2 minutes
 
-4. **Create Environment Configuration File**:
+2. **Create Environment Configuration File**:
    ```bash
-   # Go back to project root
-   cd ..
-
    # Create .env.local file
    echo "NEXT_PUBLIC_API_URL=http://localhost:5001" > .env.local
    echo "NODE_ENV=development" >> .env.local
@@ -342,7 +327,7 @@ TK5提供本地IBM大型机环境，无需网络连接即可测试。
 #### Step 9: Start the Website (启动网站)
 1. **Start Backend Server** (in Git Bash):
    ```bash
-   python app.py
+   python backend/app.py
    ```
    - Keep this window open - you should see "Running on http://127.0.0.1:5001"
 
@@ -378,7 +363,7 @@ After you're done using the website, you need to properly stop all running servi
    - Type `y` and press Enter to confirm
 
 2. **Stop Backend Server (停止后端服务器)**:
-   - In the Git Bash window running `python app.py`
+   - In the Git Bash window running `python backend/app.py`
    - Press `Ctrl + C`
    - The server will stop immediately
 
@@ -589,30 +574,15 @@ TK5提供本地IBM大型机环境，无需网络连接即可测试。
 cd ~/Desktop/test-workflow-nextjs
 ```
 
-1. **Create Python Virtual Environment**:
+1. **Install Python Packages**:
    ```bash
-   python3 -m venv .venv
-   ```
-   - This creates a new Python virtual environment for the project
-
-2. **Activate Python Environment**:
-   ```bash
-   source .venv/bin/activate
-   ```
-   - Your prompt will show `(.venv)` at the beginning
-
-3. **Install Python Packages**:
-   ```bash
-   cd backend
-   pip install flask flask-cors py3270 python-dotenv
+   pip3 install flask flask-cors py3270 python-dotenv
    ```
    - This installs all required packages for the mainframe backend
+   - This may take 1-2 minutes
 
-4. **Create Environment Configuration File**:
+2. **Create Environment Configuration File**:
    ```bash
-   # Go back to project root
-   cd ..
-
    # Create .env.local file
    echo "NEXT_PUBLIC_API_URL=http://localhost:5001" > .env.local
    echo "NODE_ENV=development" >> .env.local
@@ -622,7 +592,7 @@ cd ~/Desktop/test-workflow-nextjs
 #### Step 10: Start the Website (启动网站)
 1. **Start Backend Server** (in current Terminal):
    ```bash
-   python3 app.py
+   python3 backend/app.py
    ```
    - You should see "Running on http://127.0.0.1:5001"
    - Keep this Terminal window open
@@ -661,7 +631,7 @@ After you're done using the website, you need to properly stop all running servi
    - The server will stop immediately
 
 2. **Stop Backend Server (停止后端服务器)**:
-   - In the Terminal window running `python3 app.py`
+   - In the Terminal window running `python3 backend/app.py`
    - Press `Ctrl + C`
    - The server will stop immediately
 
