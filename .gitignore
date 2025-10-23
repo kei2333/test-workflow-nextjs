@@ -19,8 +19,17 @@ out/
 Thumbs.db
 
 # Uploads and downloads directories
-uploads/
-downloads/
+# Ignore all files in uploads directory
+uploads/*
+# But keep the sample files
+!uploads/.gitkeep
+!uploads/AUTOFILIN.txt
+!uploads/Copybook - input.txt
+
+# Ignore all files in downloads directory
+downloads/*
+# But keep .gitkeep if exists
+!downloads/.gitkeep
 
 # Test files
 *.test.*
