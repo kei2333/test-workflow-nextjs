@@ -1,9 +1,0 @@
-       01  IN-REC.
-           05 I-POLICY-ID                PIC X(16).
-           05 I-POLICY-START-DATE        PIC 9(8).     *> YYYYMMDD
-           05 I-CAR-TYPE                 PIC X(20).
-           05 I-CAR-MAKER                PIC X(20).
-           05 I-BIRTHDATE                PIC 9(8).     *> YYYYMMDD
-           05 I-LICENSE-COLOR            PIC X(5).
-           05 I-DRIVER-SCOPE             PIC X(10).
-           05 FILLER                     PIC X(50).

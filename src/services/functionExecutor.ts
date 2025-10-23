@@ -611,24 +611,17 @@ export class FunctionExecutor {
     inputs: Record<string, string>
   ): Promise<string> {
     try {
-      // Import path module
-      const path = await import('path');
-
-      // Get file paths (use the full path stored during upload if available)
-      let textFilePath = inputs['Text file name in windows_fullPath'];
-      if (!textFilePath) {
-        // Construct absolute path
-        textFilePath = path.join(process.cwd(), inputs['Windows text file location'], inputs['Text file name in windows']);
-      }
-
-      let copybookPath = inputs['Copybook name in windows_fullPath'];
-      if (!copybookPath) {
-        // Construct absolute path
-        copybookPath = path.join(process.cwd(), inputs['Windows Copybook Location'], inputs['Copybook name in windows']);
-      }
-
-      const outputFileName = inputs['Excel file name'] || 'output.xlsx';
+      // Get input parameters with defaults
+      const textFileName = inputs['Text file name in windows'] || 'AUTOFILIN.txt';
+      const textLocation = inputs['Windows text file location'] || 'uploads';
+      const copybookName = inputs['Copybook name in windows'] || 'Copybook - input.txt';
+      const copybookLocation = inputs['Windows Copybook Location'] || 'uploads';
+      const outputFileName = inputs['Excel file name'] || 'converted-output.xlsx';
       const outputLocation = inputs['Excel file location'] || 'downloads';
+
+      // Construct relative paths (server will resolve to absolute paths)
+      const textFilePath = `${textLocation}/${textFileName}`;
+      const copybookPath = `${copybookLocation}/${copybookName}`;
 
       // Call the file conversion API
       const response = await fetch('/api/file/convert', {

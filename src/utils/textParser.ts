@@ -30,10 +30,27 @@ export function parseFixedLengthText(
   textContent: string,
   fields: CopybookField[]
 ): ParsedRecord[] {
+  if (!textContent || textContent.trim().length === 0) {
+    throw new Error('Text file content is empty');
+  }
+
+  if (!fields || fields.length === 0) {
+    throw new Error('No field definitions provided from copybook');
+  }
+
   const records: ParsedRecord[] = [];
   const lines = textContent.split('\n').filter(line => line.trim());
 
-  for (const line of lines) {
+  // Calculate expected record length
+  const expectedLength = fields[fields.length - 1].endPosition;
+
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+    const line = lines[lineIndex];
+
+    if (line.length < expectedLength) {
+      console.warn(`Warning: Line ${lineIndex + 1} is shorter than expected (${line.length} < ${expectedLength}). Padding with spaces.`);
+    }
+
     const record: ParsedRecord = {};
 
     for (const field of fields) {
@@ -42,11 +59,19 @@ export function parseFixedLengthText(
         continue;
       }
 
-      const value = extractFieldValue(line, field);
-      record[field.name] = value;
+      try {
+        const value = extractFieldValue(line, field);
+        record[field.name] = value;
+      } catch (error) {
+        throw new Error(`Error extracting field '${field.name}' at line ${lineIndex + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     }
 
     records.push(record);
+  }
+
+  if (records.length === 0) {
+    throw new Error('No records parsed from text file');
   }
 
   return records;
@@ -59,6 +84,14 @@ export function parseCSVText(
   textContent: string,
   fields: CopybookField[]
 ): ParsedRecord[] {
+  if (!textContent || textContent.trim().length === 0) {
+    throw new Error('Text file content is empty');
+  }
+
+  if (!fields || fields.length === 0) {
+    throw new Error('No field definitions provided from copybook');
+  }
+
   const records: ParsedRecord[] = [];
   const lines = textContent.split('\n').filter(line => line.trim());
 
@@ -67,11 +100,20 @@ export function parseCSVText(
     .filter(f => f.name !== 'FILLER')
     .map(f => f.name);
 
-  for (const line of lines) {
+  if (fieldNames.length === 0) {
+    throw new Error('No valid field names found in copybook (all fields are FILLER)');
+  }
+
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+    const line = lines[lineIndex];
     const record: ParsedRecord = {};
 
     // Split by comma and trim each value
     const values = line.split(',').map(v => v.trim());
+
+    if (values.length !== fieldNames.length) {
+      console.warn(`Warning: Line ${lineIndex + 1} has ${values.length} values but expected ${fieldNames.length} fields`);
+    }
 
     // Map values to field names
     fieldNames.forEach((fieldName, index) => {
@@ -79,6 +121,10 @@ export function parseCSVText(
     });
 
     records.push(record);
+  }
+
+  if (records.length === 0) {
+    throw new Error('No records parsed from CSV file');
   }
 
   return records;

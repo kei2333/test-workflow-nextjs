@@ -16,11 +16,17 @@ export interface CopybookField {
  * Supports PIC X(n) for strings and PIC 9(n) for numbers
  */
 export function parseCopybook(copybookContent: string): CopybookField[] {
+  if (!copybookContent || copybookContent.trim().length === 0) {
+    throw new Error('Copybook content is empty or invalid');
+  }
+
   const fields: CopybookField[] = [];
   const lines = copybookContent.split('\n');
   let currentPosition = 0;
+  let processedLines = 0;
 
-  for (const line of lines) {
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+    const line = lines[lineIndex];
     const trimmedLine = line.trim();
 
     // Skip empty lines and comments
@@ -35,6 +41,10 @@ export function parseCopybook(copybookContent: string): CopybookField[] {
     if (fieldMatch) {
       const [, rawFieldName, picType, lengthStr] = fieldMatch;
       const length = parseInt(lengthStr, 10);
+
+      if (isNaN(length) || length <= 0) {
+        throw new Error(`Invalid field length at line ${lineIndex + 1}: ${trimmedLine}`);
+      }
 
       // Convert COBOL field name to more readable format
       // I-POLICY-ID -> Policy ID
@@ -57,7 +67,12 @@ export function parseCopybook(copybookContent: string): CopybookField[] {
       });
 
       currentPosition += length;
+      processedLines++;
     }
+  }
+
+  if (fields.length === 0) {
+    throw new Error('No valid field definitions found in copybook. Please check the copybook format.');
   }
 
   return fields;
