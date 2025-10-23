@@ -285,27 +285,33 @@
     "inputs": [
       {
         "name": "Text file name in windows",
-        "placeholder": "File1"
+        "placeholder": "File1",
+        "defaultValue": "AUTOFILIN.txt"
       },
       {
         "name": "Windows text file location",
-        "placeholder": "File location"
+        "placeholder": "File location",
+        "defaultValue": "uploads"
       },
       {
         "name": "Copybook name in windows",
-        "placeholder": "File2"
+        "placeholder": "File2",
+        "defaultValue": "Copybook - input.txt"
       },
       {
         "name": "Windows Copybook Location",
-        "placeholder": "Copybook location"
+        "placeholder": "Copybook location",
+        "defaultValue": "uploads"
       },
       {
         "name": "Excel file name",
-        "placeholder": "File3"
+        "placeholder": "File3",
+        "defaultValue": "converted-output.xlsx"
       },
       {
         "name": "Excel file location",
-        "placeholder": "Excel file location"
+        "placeholder": "Excel file location",
+        "defaultValue": "downloads"
       }
     ]
   },

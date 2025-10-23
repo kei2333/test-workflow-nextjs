@@ -1,6 +1,7 @@
 export interface FunctionInput {
   name: string;
   placeholder: string;
+  defaultValue?: string;
   type?: 'text' | 'radio';
   options?: Array<{
     value: string;

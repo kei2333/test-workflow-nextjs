@@ -20,6 +20,11 @@ export const InputConfigModal: React.FC<InputConfigModalProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const resolveDefaultValue = (input: FunctionData['inputs'][number]): string => {
+    // Check if defaultValue exists and return it
+    if ('defaultValue' in input && input.defaultValue) {
+      return input.defaultValue;
+    }
+
     if (input.type === 'radio' && input.options && input.options.length > 0) {
       const latestOption = input.options.find(option => option.value === 'latest');
       if (latestOption) {
@@ -197,6 +202,10 @@ export const InputConfigModal: React.FC<InputConfigModalProps> = ({
     setInputValues({});
     setErrors({});
     onClose();
+  };
+
+  const isFileInputField = (inputName: string): boolean => {
+    return false;
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

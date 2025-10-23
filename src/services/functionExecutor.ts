@@ -229,7 +229,7 @@ export class FunctionExecutor {
         return await this.executeSubmitJcl(functionName, sanitizedInputs);
 
       case 'fileconv':
-        return `${functionName}: File conversion completed successfully. Converted text file '${sanitizedInputs['Text file name in windows'] || 'File1'}' to Excel file '${sanitizedInputs['Excel file name'] || 'File3'}' using copybook '${sanitizedInputs['Copybook name in windows'] || 'File2'}'. File converted to excel as per copybook layout.`;
+        return await this.executeFileConv(functionName, sanitizedInputs);
       
       case 'gotoispfmainscreen':
         return `${functionName}: Successfully returned to ISPF main screen. Pre-requisite is that LogonISPF should be true.`;
@@ -600,6 +600,60 @@ export class FunctionExecutor {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Failed to submit JCL '${jclDatasetName}': ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Execute file conversion from text to Excel using copybook
+   */
+  private static async executeFileConv(
+    functionName: string,
+    inputs: Record<string, string>
+  ): Promise<string> {
+    try {
+      // Import path module
+      const path = await import('path');
+
+      // Get file paths (use the full path stored during upload if available)
+      let textFilePath = inputs['Text file name in windows_fullPath'];
+      if (!textFilePath) {
+        // Construct absolute path
+        textFilePath = path.join(process.cwd(), inputs['Windows text file location'], inputs['Text file name in windows']);
+      }
+
+      let copybookPath = inputs['Copybook name in windows_fullPath'];
+      if (!copybookPath) {
+        // Construct absolute path
+        copybookPath = path.join(process.cwd(), inputs['Windows Copybook Location'], inputs['Copybook name in windows']);
+      }
+
+      const outputFileName = inputs['Excel file name'] || 'output.xlsx';
+      const outputLocation = inputs['Excel file location'] || 'downloads';
+
+      // Call the file conversion API
+      const response = await fetch('/api/file/convert', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          copybookPath,
+          textFilePath,
+          outputFileName,
+          outputLocation
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        return `${functionName}: Successfully converted ${data.recordCount} records to Excel file '${outputFileName}'. Output saved to '${data.outputPath}'. Processed ${data.fieldCount} fields from copybook.`;
+      } else {
+        throw new Error(data.error || 'File conversion failed');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`File conversion failed: ${errorMessage}`);
     }
   }
 }
