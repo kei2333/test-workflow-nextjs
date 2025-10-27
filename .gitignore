@@ -47,6 +47,7 @@ temp/
 
 # Configuration files
 CLAUDE.md
+.claude/
 test-config.json
 
 # Test directories
