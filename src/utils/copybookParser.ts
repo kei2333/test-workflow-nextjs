@@ -34,16 +34,22 @@ export function parseCopybook(copybookContent: string): CopybookField[] {
       continue;
     }
 
-    // Match field definition: 05 FIELD-NAME PIC X(16) or 05 FIELD-NAME PIC 9(8)
+    // Match field definition: 05 FIELD-NAME PIC X(16) or 05 FIELD-NAME PIC 9(8) or PIC +9(8)
     // Also handle: 05 FILLER PIC X(50)
-    const fieldMatch = trimmedLine.match(/^\d+\s+([A-Z0-9\-]+)\s+PIC\s+([X9])\((\d+)\)/i);
+    // Format: PIC [+]X/9(n) where + is optional for signed numbers
+    const fieldMatch = trimmedLine.match(/^\d+\s+([A-Z0-9\-]+)\s+PIC\s+(\+?)([X9])\((\d+)\)/i);
 
     if (fieldMatch) {
-      const [, rawFieldName, picType, lengthStr] = fieldMatch;
-      const length = parseInt(lengthStr, 10);
+      const [, rawFieldName, sign, picType, lengthStr] = fieldMatch;
+      let length = parseInt(lengthStr, 10);
 
       if (isNaN(length) || length <= 0) {
         throw new Error(`Invalid field length at line ${lineIndex + 1}: ${trimmedLine}`);
+      }
+
+      // For signed numbers (PIC +9(n)), add 1 for the sign character
+      if (sign === '+') {
+        length = length + 1;
       }
 
       // Convert COBOL field name to more readable format
