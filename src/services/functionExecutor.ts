@@ -455,13 +455,17 @@ export class FunctionExecutor {
           throw error;
         } else if (error.message.includes('fetch')) {
           // Network errors
-          throw new Error(`Network error while sending file '${windowsFileName}': ${error.message}. Please check your connection to the backend server.`);
+          const fileName = inputs['Windows File name'] || 'File1';
+          throw new Error(`Network error while sending file '${fileName}': ${error.message}. Please check your connection to the backend server.`);
         } else {
           // Other errors
-          throw new Error(`Failed to send file '${windowsFileName}' to '${mainframeFileName}': ${error.message}`);
+          const fileName = inputs['Windows File name'] || 'File1';
+          const datasetName = inputs['Mainframe File Name'] || 'SHIPRA.TEST.FILE2';
+          throw new Error(`Failed to send file '${fileName}' to '${datasetName}': ${error.message}`);
         }
       }
-      throw new Error(`Failed to send file '${windowsFileName}': Unknown error occurred`);
+      const fileName = inputs['Windows File name'] || 'File1';
+      throw new Error(`Failed to send file '${fileName}': Unknown error occurred`);
     }
   }
 
@@ -537,13 +541,17 @@ export class FunctionExecutor {
           throw error;
         } else if (error.message.includes('fetch')) {
           // Network errors
-          throw new Error(`Network error while retrieving file '${mainframeFileName}': ${error.message}. Please check your connection to the backend server.`);
+          const datasetName = inputs['Mainframe File Name'] || 'TRA026.FLAT.FILEIN';
+          throw new Error(`Network error while retrieving file '${datasetName}': ${error.message}. Please check your connection to the backend server.`);
         } else {
           // Other errors
-          throw new Error(`Failed to retrieve file '${mainframeFileName}' to '${windowsFileName}': ${error.message}`);
+          const datasetName = inputs['Mainframe File Name'] || 'TRA026.FLAT.FILEIN';
+          const fileName = inputs['Windows File name'] || 'File1';
+          throw new Error(`Failed to retrieve file '${datasetName}' to '${fileName}': ${error.message}`);
         }
       }
-      throw new Error(`Failed to retrieve file '${mainframeFileName}': Unknown error occurred`);
+      const datasetName = inputs['Mainframe File Name'] || 'TRA026.FLAT.FILEIN';
+      throw new Error(`Failed to retrieve file '${datasetName}': Unknown error occurred`);
     }
   }
 

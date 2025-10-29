@@ -212,10 +212,6 @@ export const InputConfigModal: React.FC<InputConfigModalProps> = ({
     onClose();
   };
 
-  const isFileInputField = (inputName: string): boolean => {
-    return false;
-  };
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && e.ctrlKey) {
       e.preventDefault();

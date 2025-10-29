@@ -41,7 +41,6 @@ export default function Home() {
   // State for drag and drop
   const [draggedFunction, setDraggedFunction] = useState<string>('');
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-  const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
 
   // State for modals
   const [showInputModal, setShowInputModal] = useState(false);
@@ -208,7 +207,6 @@ export default function Home() {
   }, []);
 
   const handleItemDragStart = useCallback((e: React.DragEvent, index: number) => {
-    setDraggedItemIndex(index);
     e.dataTransfer.setData('text/workflow-item', index.toString());
     e.dataTransfer.effectAllowed = 'move';
   }, []);
@@ -237,7 +235,6 @@ export default function Home() {
           addLog('info', `Workflow item moved from position ${fromIndex + 1} to ${toIndex + 1}`);
         }
 
-        setDraggedItemIndex(null);
         setDragOverIndex(null);
         return;
       }

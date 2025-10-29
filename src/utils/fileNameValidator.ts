@@ -77,7 +77,7 @@ export function validateMainframeDatasetName(name: string): FileNameValidationRe
   // Check for member name (in parentheses)
   const memberMatch = trimmedName.match(/^([A-Z0-9@#$.]+)\(([A-Z0-9@#$]+)\)$/i);
   if (memberMatch) {
-    const [, datasetPart, memberName] = memberMatch;
+    const [, , memberName] = memberMatch;
 
     if (memberName.length > 8) {
       errors.push(`Member name ('${memberName}') exceeds 8 characters (${memberName.length})`);
