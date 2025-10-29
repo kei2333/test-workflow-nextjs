@@ -6,6 +6,7 @@ export interface ExecutionLog {
   type: 'info' | 'success' | 'error' | 'warning';
   message: string;
   stepName?: string;
+  executionTime?: number; // Execution time in milliseconds
 }
 
 interface ExecutionLogPanelProps {
@@ -148,7 +149,7 @@ export const ExecutionLogPanel: React.FC<ExecutionLogPanelProps> = ({
                 >
                   {getLogIcon(log.type)}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       {log.stepName && (
                         <span className="text-base font-medium text-gray-600 bg-gray-200 px-2 py-0.5 rounded">
                           {log.stepName}
@@ -157,6 +158,16 @@ export const ExecutionLogPanel: React.FC<ExecutionLogPanelProps> = ({
                       <span className="text-base text-gray-400">
                         {log.timestamp}
                       </span>
+                      {log.executionTime !== undefined && (
+                        <span className="text-base text-gray-500 bg-blue-100/60 px-2 py-0.5 rounded flex items-center gap-1">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          {log.executionTime < 1000
+                            ? `${log.executionTime}ms`
+                            : `${(log.executionTime / 1000).toFixed(2)}s`}
+                        </span>
+                      )}
                     </div>
                     <p className={`text-base ${getLogTextColor(log.type)}`}>
                       {log.message}

@@ -11,6 +11,8 @@ interface EnhancedWorkflowCanvasProps {
   onDrop: (e: React.DragEvent) => void;
   onItemDragOver: (e: React.DragEvent, index: number) => void;
   onItemDrop: (e: React.DragEvent, index: number) => void;
+  onItemDragStart: (e: React.DragEvent, index: number) => void;
+  onEditItem: (id: string) => void;
   onRemoveItem: (id: string) => void;
   onRunWorkflow: () => void;
   isRunning: boolean;
@@ -25,6 +27,8 @@ export const EnhancedWorkflowCanvas: React.FC<EnhancedWorkflowCanvasProps> = ({
   onDrop,
   onItemDragOver,
   onItemDrop,
+  onItemDragStart,
+  onEditItem,
   onRemoveItem,
   onRunWorkflow,
   isRunning
@@ -228,6 +232,8 @@ export const EnhancedWorkflowCanvas: React.FC<EnhancedWorkflowCanvasProps> = ({
                     )}
                     
                     <div
+                      draggable={!isRunning}
+                      onDragStart={(e) => onItemDragStart(e, index)}
                       onDragOver={(e) => onItemDragOver(e, index)}
                       onDrop={(e) => onItemDrop(e, index)}
                       className={`
@@ -235,6 +241,7 @@ export const EnhancedWorkflowCanvas: React.FC<EnhancedWorkflowCanvasProps> = ({
                         transform transition-all duration-300 hover:scale-[1.02] shadow-lg hover:shadow-xl
                         bg-gradient-to-r ${getItemBackgroundGradient(status, index)} text-white
                         ${status === 'running' ? 'animate-pulse' : ''}
+                        ${!isRunning ? 'cursor-move' : 'cursor-default'}
                       `}
                       role="listitem"
                       aria-label={`Step ${index + 1}: ${item.name}`}
@@ -261,18 +268,32 @@ export const EnhancedWorkflowCanvas: React.FC<EnhancedWorkflowCanvasProps> = ({
                         </div>
                       </div>
                       
-                      <button
-                        onClick={() => onRemoveItem(item.id)}
-                        onKeyDown={(e) => handleKeyDown(e, () => onRemoveItem(item.id))}
-                        disabled={isRunning}
-                        className="w-8 h-8 bg-red-500/80 hover:bg-red-500 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-xl flex items-center justify-center text-white font-bold transition-all duration-200 hover:scale-110 active:scale-95 relative z-10 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-1 focus:ring-offset-red-500 shadow-lg"
-                        title={`Remove ${item.name} from workflow`}
-                        aria-label={`Remove ${item.name} from workflow`}
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
+                      <div className="flex items-center gap-2 relative z-10">
+                        <button
+                          onClick={() => onEditItem(item.id)}
+                          onKeyDown={(e) => handleKeyDown(e, () => onEditItem(item.id))}
+                          disabled={isRunning}
+                          className="w-8 h-8 bg-blue-500/80 hover:bg-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-xl flex items-center justify-center text-white font-bold transition-all duration-200 hover:scale-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-1 focus:ring-offset-blue-500 shadow-lg"
+                          title={`Edit ${item.name} parameters`}
+                          aria-label={`Edit ${item.name} parameters`}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => onRemoveItem(item.id)}
+                          onKeyDown={(e) => handleKeyDown(e, () => onRemoveItem(item.id))}
+                          disabled={isRunning}
+                          className="w-8 h-8 bg-red-500/80 hover:bg-red-500 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-xl flex items-center justify-center text-white font-bold transition-all duration-200 hover:scale-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-1 focus:ring-offset-red-500 shadow-lg"
+                          title={`Remove ${item.name} from workflow`}
+                          aria-label={`Remove ${item.name} from workflow`}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                     
                     {/* Connection line */}
