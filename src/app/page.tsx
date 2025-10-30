@@ -265,8 +265,9 @@ export default function Home() {
 
         // Only reorder if the position actually changed
         if (workflowIndex !== finalTargetIndex) {
+          const itemName = workflowItems[workflowIndex].name;
           reorderWorkflowItems(workflowIndex, finalTargetIndex);
-          addLog('info', `Workflow item moved from position ${workflowIndex + 1} to ${finalTargetIndex + 1}`);
+          addLog('info', `${itemName} moved from position ${workflowIndex + 1} to ${finalTargetIndex + 1}`);
         }
       }
       setDraggingWorkflowIndex(null);
@@ -342,8 +343,9 @@ export default function Home() {
         finalTargetIndex = Math.max(0, Math.min(finalTargetIndex, workflowItems.length - 1));
 
         if (fromIndex !== finalTargetIndex) {
+          const itemName = workflowItems[fromIndex].name;
           reorderWorkflowItems(fromIndex, finalTargetIndex);
-          addLog('info', `Workflow item moved from position ${fromIndex + 1} to ${finalTargetIndex + 1}`);
+          addLog('info', `${itemName} moved from position ${fromIndex + 1} to ${finalTargetIndex + 1}`);
         }
       }
 

@@ -235,10 +235,14 @@ export const EnhancedWorkflowCanvas: React.FC<EnhancedWorkflowCanvasProps> = ({
                   <React.Fragment key={item.id}>
                     {/* Placeholder for dragged item at insert position */}
                     {showPlaceholder && draggingWorkflowIndex !== null && (
-                      <div className="relative p-5 rounded-2xl opacity-50 bg-gradient-to-r from-blue-300 via-cyan-300 to-teal-300 animate-pulse shadow-2xl scale-105 transition-all duration-300 ease-out border-2 border-white/60">
-                        <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 via-cyan-400/20 to-teal-400/20 rounded-2xl animate-pulse"></div>
+                      <div className={`
+                        relative p-5 rounded-2xl opacity-60 animate-pulse shadow-2xl scale-105
+                        transition-all duration-300 ease-out border-2 border-white/60
+                        bg-gradient-to-r ${getItemBackgroundGradient(getItemStatus(draggingWorkflowIndex), draggingWorkflowIndex)} text-white
+                      `}>
+                        <div className="absolute inset-0 bg-white/10 rounded-2xl animate-pulse"></div>
                         <div className="flex items-center gap-4 relative z-10">
-                          <div className="w-10 h-10 bg-white/40 backdrop-blur-sm rounded-2xl flex items-center justify-center font-bold text-lg border-2 border-white/70 text-white shadow-lg">
+                          <div className="w-10 h-10 bg-white/30 backdrop-blur-sm rounded-2xl flex items-center justify-center font-bold text-lg border-2 border-white/70 text-white shadow-lg">
                             {index + 1}
                           </div>
                           <div>
@@ -330,10 +334,14 @@ export const EnhancedWorkflowCanvas: React.FC<EnhancedWorkflowCanvasProps> = ({
 
                     {/* Placeholder at the end */}
                     {dragOverIndex === workflowItems.length && index === workflowItems.length - 1 && draggingWorkflowIndex !== null && (
-                      <div className="relative p-5 rounded-2xl opacity-50 bg-gradient-to-r from-blue-300 via-cyan-300 to-teal-300 animate-pulse shadow-2xl scale-105 transition-all duration-300 ease-out mt-4 border-2 border-white/60">
-                        <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 via-cyan-400/20 to-teal-400/20 rounded-2xl animate-pulse"></div>
+                      <div className={`
+                        relative p-5 rounded-2xl opacity-60 animate-pulse shadow-2xl scale-105
+                        transition-all duration-300 ease-out mt-4 border-2 border-white/60
+                        bg-gradient-to-r ${getItemBackgroundGradient(getItemStatus(draggingWorkflowIndex), draggingWorkflowIndex)} text-white
+                      `}>
+                        <div className="absolute inset-0 bg-white/10 rounded-2xl animate-pulse"></div>
                         <div className="flex items-center gap-4 relative z-10">
-                          <div className="w-10 h-10 bg-white/40 backdrop-blur-sm rounded-2xl flex items-center justify-center font-bold text-lg border-2 border-white/70 text-white shadow-lg">
+                          <div className="w-10 h-10 bg-white/30 backdrop-blur-sm rounded-2xl flex items-center justify-center font-bold text-lg border-2 border-white/70 text-white shadow-lg">
                             {workflowItems.length}
                           </div>
                           <div>
