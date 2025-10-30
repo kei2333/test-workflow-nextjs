@@ -109,8 +109,57 @@ export const InputConfigModal: React.FC<InputConfigModalProps> = ({
     return pollingFunctions.includes(functionData.id) && shouldHideJobIdentifier();
   };
 
+  // Shared validation logic for a specific field
+  const validateFieldValue = (inputName: string, value: string): string | null => {
+    if (!value || !value.trim()) {
+      return null; // Empty values are handled separately
+    }
+
+    const trimmedValue = value.trim();
+
+    // Windows file name validation
+    if (inputName === 'Windows File name') {
+      const validation = validateWindowsFileName(value); // Don't trim - need to check trailing spaces
+      if (!validation.isValid) {
+        return validation.errors[0];
+      }
+    }
+
+    // Mainframe file name validation
+    if (inputName === 'Mainframe File Name') {
+      const validation = validateMainframeDatasetName(trimmedValue);
+      if (!validation.isValid) {
+        return validation.errors[0];
+      }
+    }
+
+    // DCB parameter validation for SendFile
+    if (functionData?.id === 'sendfile' && ['RECFM', 'LRECL', 'BLKSIZE'].includes(inputName)) {
+      const currentValues = { ...inputValues, [inputName]: value };
+      const dcb = parseDCB(currentValues);
+
+      if (Object.keys(dcb).length > 0) {
+        const validation = validateDCB(dcb);
+        if (!validation.isValid) {
+          // Find error related to this specific field
+          const relevantError = validation.errors.find(err =>
+            err.toLowerCase().includes(inputName.toLowerCase())
+          );
+          return relevantError || validation.errors[0];
+        }
+      }
+    }
+
+    return null;
+  };
+
   const handleInputChange = (inputName: string, value: string) => {
-    const sanitizedValue = sanitizeInput(value);
+    // For file name fields, preserve whitespace for validation but still sanitize XSS
+    const isFileNameField = ['Windows File name', 'Mainframe File Name'].includes(inputName);
+    const sanitizedValue = isFileNameField
+      ? value.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '').replace(/[<>]/g, '').replace(/javascript:/gi, '').replace(/on\w+=/gi, '')
+      : sanitizeInput(value);
+
     setInputValues(prev => {
       const updated: Record<string, string> = {
         ...prev,
@@ -137,57 +186,13 @@ export const InputConfigModal: React.FC<InputConfigModalProps> = ({
       return updated;
     });
 
-    // Real-time validation for specific fields
+    // Real-time validation using shared logic
     const newErrors: Record<string, string> = { ...errors };
 
-    // Validate Windows file name
-    if (inputName === 'Windows File name' && sanitizedValue.trim()) {
-      const validation = validateWindowsFileName(sanitizedValue.trim());
-      if (!validation.isValid) {
-        newErrors[inputName] = validation.errors[0];
-      } else {
-        delete newErrors[inputName];
-      }
-    }
-
-    // Validate Mainframe file name
-    if (inputName === 'Mainframe File Name' && sanitizedValue.trim()) {
-      const validation = validateMainframeDatasetName(sanitizedValue.trim());
-      if (!validation.isValid) {
-        newErrors[inputName] = validation.errors[0];
-      } else {
-        delete newErrors[inputName];
-      }
-    }
-
-    // Validate DCB parameters for SendFile
-    if (functionData?.id === 'sendfile' && ['RECFM', 'LRECL', 'BLKSIZE'].includes(inputName)) {
-      const currentValues = { ...inputValues, [inputName]: sanitizedValue };
-      const dcb = parseDCB(currentValues);
-
-      if (Object.keys(dcb).length > 0) {
-        const validation = validateDCB(dcb);
-        if (!validation.isValid) {
-          // Find error related to this specific field
-          const relevantError = validation.errors.find(err =>
-            err.toLowerCase().includes(inputName.toLowerCase())
-          );
-          if (relevantError) {
-            newErrors[inputName] = relevantError;
-          } else if (validation.errors.length > 0) {
-            // If there's a cross-field validation error, show it on the first relevant field
-            newErrors[inputName] = validation.errors[0];
-          } else {
-            delete newErrors[inputName];
-          }
-        } else {
-          delete newErrors[inputName];
-        }
-      }
-    }
-
-    // Clear error when field is empty (except for required fields)
-    if (!sanitizedValue.trim() && errors[inputName]) {
+    const error = validateFieldValue(inputName, sanitizedValue);
+    if (error) {
+      newErrors[inputName] = error;
+    } else {
       delete newErrors[inputName];
     }
 
@@ -243,56 +248,15 @@ export const InputConfigModal: React.FC<InputConfigModalProps> = ({
           isValid = false;
         }
 
-        // Specialized validations
+        // Use shared validation logic
         if (value) {
-          // Windows file name validation
-          if (input.name === 'Windows File name') {
-            const validation = validateWindowsFileName(value);
-            if (!validation.isValid) {
-              newErrors[input.name] = validation.errors[0];
-              isValid = false;
-            }
-          }
-
-          // Mainframe file name validation
-          if (input.name === 'Mainframe File Name') {
-            const validation = validateMainframeDatasetName(value);
-            if (!validation.isValid) {
-              newErrors[input.name] = validation.errors[0];
-              isValid = false;
-            }
-          }
-        }
-      });
-
-      // DCB validation for SendFile
-      if (functionData.id === 'sendfile') {
-        const dcb = parseDCB(inputValues);
-        if (Object.keys(dcb).length > 0) {
-          const validation = validateDCB(dcb);
-          if (!validation.isValid) {
-            // Assign DCB errors to the first DCB field that has an issue
-            validation.errors.forEach(error => {
-              if (error.toLowerCase().includes('recfm')) {
-                newErrors['RECFM'] = error;
-              } else if (error.toLowerCase().includes('lrecl')) {
-                newErrors['LRECL'] = error;
-              } else if (error.toLowerCase().includes('blksize')) {
-                newErrors['BLKSIZE'] = error;
-              } else {
-                // General DCB error, assign to the first DCB field
-                const firstDcbField = functionData.inputs.find(inp =>
-                  inp.name === 'RECFM' || inp.name === 'LRECL' || inp.name === 'BLKSIZE'
-                );
-                if (firstDcbField && !newErrors[firstDcbField.name]) {
-                  newErrors[firstDcbField.name] = error;
-                }
-              }
-            });
+          const error = validateFieldValue(input.name, value);
+          if (error) {
+            newErrors[input.name] = error;
             isValid = false;
           }
         }
-      }
+      });
     }
 
     setErrors(newErrors);
