@@ -225,9 +225,19 @@ export default function Home() {
 
     if (workflowIndex !== null && !Number.isNaN(workflowIndex)) {
       if (workflowIndex >= 0 && workflowIndex < workflowItems.length) {
-        if (workflowIndex !== workflowItems.length - 1) {
-          reorderWorkflowItems(workflowIndex, workflowItems.length - 1);
-          addLog('info', `Workflow item moved from position ${workflowIndex + 1} to ${workflowItems.length}`);
+        // Use dragOverIndex if available, otherwise default to last position
+        const targetIndex = dragOverIndex !== null ? dragOverIndex : workflowItems.length;
+
+        // Calculate the actual target position accounting for the removed item
+        let finalTargetIndex = targetIndex;
+        if (workflowIndex < targetIndex) {
+          finalTargetIndex = targetIndex - 1;
+        }
+
+        // Only reorder if the position actually changed
+        if (workflowIndex !== finalTargetIndex) {
+          reorderWorkflowItems(workflowIndex, finalTargetIndex);
+          addLog('info', `Workflow item moved from position ${workflowIndex + 1} to ${finalTargetIndex + 1}`);
         }
       }
       setDraggingWorkflowIndex(null);
@@ -247,7 +257,7 @@ export default function Home() {
     setDraggingWorkflowIndex(null);
     setDraggedFunction('');
     setDragOverIndex(null);
-  }, [functions, workflowItems.length, addLog, reorderWorkflowItems, readFunctionId, readWorkflowItemIndex]);
+  }, [functions, workflowItems.length, addLog, reorderWorkflowItems, readFunctionId, readWorkflowItemIndex, dragOverIndex]);
 
   const handleItemDragOver = useCallback((e: React.DragEvent, index: number) => {
     e.preventDefault();
