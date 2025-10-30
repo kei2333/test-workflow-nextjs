@@ -235,15 +235,16 @@ export const EnhancedWorkflowCanvas: React.FC<EnhancedWorkflowCanvasProps> = ({
                   <React.Fragment key={item.id}>
                     {/* Placeholder for dragged item at insert position */}
                     {showPlaceholder && draggingWorkflowIndex !== null && (
-                      <div className="relative p-5 rounded-2xl opacity-40 bg-gradient-to-r from-gray-300 via-gray-400 to-gray-300 transition-all duration-150 ease-out">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 bg-white/30 backdrop-blur-sm rounded-2xl flex items-center justify-center font-bold text-lg border border-white/50 text-white">
+                      <div className="relative p-5 rounded-2xl opacity-50 bg-gradient-to-r from-blue-300 via-cyan-300 to-teal-300 animate-pulse shadow-2xl scale-105 transition-all duration-300 ease-out border-2 border-white/60">
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 via-cyan-400/20 to-teal-400/20 rounded-2xl animate-pulse"></div>
+                        <div className="flex items-center gap-4 relative z-10">
+                          <div className="w-10 h-10 bg-white/40 backdrop-blur-sm rounded-2xl flex items-center justify-center font-bold text-lg border-2 border-white/70 text-white shadow-lg">
                             {index + 1}
                           </div>
                           <div>
-                            <h3 className="font-bold text-xl text-white">{workflowItems[draggingWorkflowIndex].name}</h3>
+                            <h3 className="font-bold text-xl text-white drop-shadow-lg">{workflowItems[draggingWorkflowIndex].name}</h3>
                             {Object.keys(workflowItems[draggingWorkflowIndex].inputs).length > 0 && (
-                              <p className="text-base text-white/70">
+                              <p className="text-base text-white/90 drop-shadow">
                                 {Object.keys(workflowItems[draggingWorkflowIndex].inputs).length} parameters configured
                               </p>
                             )}
@@ -260,11 +261,12 @@ export const EnhancedWorkflowCanvas: React.FC<EnhancedWorkflowCanvasProps> = ({
                       onDrop={(e) => onItemDrop(e, index)}
                       className={`
                         group relative p-5 rounded-2xl flex items-center justify-between
-                        transform transition-all duration-150 ease-out hover:scale-[1.02] shadow-lg hover:shadow-xl
+                        transform transition-all duration-300 ease-out hover:scale-[1.02] shadow-lg hover:shadow-2xl
                         bg-gradient-to-r ${getItemBackgroundGradient(status, index)} text-white
                         ${status === 'running' ? 'animate-pulse' : ''}
                         ${!isRunning ? 'cursor-move' : 'cursor-default'}
-                        ${isDragging ? 'opacity-30 scale-95' : 'opacity-100'}
+                        ${isDragging ? 'opacity-20 scale-90 blur-[2px] shadow-none' : 'opacity-100 scale-100 blur-0'}
+                        ${showPlaceholder ? 'translate-y-2' : 'translate-y-0'}
                       `}
                       role="listitem"
                       aria-label={`Step ${index + 1}: ${item.name}`}
@@ -328,15 +330,16 @@ export const EnhancedWorkflowCanvas: React.FC<EnhancedWorkflowCanvasProps> = ({
 
                     {/* Placeholder at the end */}
                     {dragOverIndex === workflowItems.length && index === workflowItems.length - 1 && draggingWorkflowIndex !== null && (
-                      <div className="relative p-5 rounded-2xl opacity-40 bg-gradient-to-r from-gray-300 via-gray-400 to-gray-300 transition-all duration-150 ease-out mt-4">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 bg-white/30 backdrop-blur-sm rounded-2xl flex items-center justify-center font-bold text-lg border border-white/50 text-white">
+                      <div className="relative p-5 rounded-2xl opacity-50 bg-gradient-to-r from-blue-300 via-cyan-300 to-teal-300 animate-pulse shadow-2xl scale-105 transition-all duration-300 ease-out mt-4 border-2 border-white/60">
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 via-cyan-400/20 to-teal-400/20 rounded-2xl animate-pulse"></div>
+                        <div className="flex items-center gap-4 relative z-10">
+                          <div className="w-10 h-10 bg-white/40 backdrop-blur-sm rounded-2xl flex items-center justify-center font-bold text-lg border-2 border-white/70 text-white shadow-lg">
                             {workflowItems.length}
                           </div>
                           <div>
-                            <h3 className="font-bold text-xl text-white">{workflowItems[draggingWorkflowIndex].name}</h3>
+                            <h3 className="font-bold text-xl text-white drop-shadow-lg">{workflowItems[draggingWorkflowIndex].name}</h3>
                             {Object.keys(workflowItems[draggingWorkflowIndex].inputs).length > 0 && (
-                              <p className="text-base text-white/70">
+                              <p className="text-base text-white/90 drop-shadow">
                                 {Object.keys(workflowItems[draggingWorkflowIndex].inputs).length} parameters configured
                               </p>
                             )}
