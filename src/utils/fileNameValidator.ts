@@ -30,6 +30,11 @@ export function validateMainframeDatasetName(name: string): FileNameValidationRe
 
   const trimmedName = name.trim();
 
+  // Check for spaces (MVS dataset names cannot contain spaces)
+  if (trimmedName.includes(' ')) {
+    errors.push('Dataset name cannot contain spaces');
+  }
+
   // Check length
   if (trimmedName.length > 44) {
     errors.push(`Dataset name too long (${trimmedName.length} characters, max 44)`);

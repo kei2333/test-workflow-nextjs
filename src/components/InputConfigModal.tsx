@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Modal } from './Modal';
 import { FunctionData } from '@/types/workflow';
 import { sanitizeInput } from '@/utils/validation';
+import { validateWindowsFileName, validateMainframeDatasetName } from '@/utils/fileNameValidator';
+import { parseDCB, validateDCB } from '@/utils/dcbValidator';
 
 interface InputConfigModalProps {
   isOpen: boolean;
@@ -134,14 +136,62 @@ export const InputConfigModal: React.FC<InputConfigModalProps> = ({
 
       return updated;
     });
-    
-    // Clear error when user starts typing
-    if (errors[inputName]) {
-      setErrors(prev => ({
-        ...prev,
-        [inputName]: ''
-      }));
+
+    // Real-time validation for specific fields
+    const newErrors: Record<string, string> = { ...errors };
+
+    // Validate Windows file name
+    if (inputName === 'Windows File name' && sanitizedValue.trim()) {
+      const validation = validateWindowsFileName(sanitizedValue.trim());
+      if (!validation.isValid) {
+        newErrors[inputName] = validation.errors[0];
+      } else {
+        delete newErrors[inputName];
+      }
     }
+
+    // Validate Mainframe file name
+    if (inputName === 'Mainframe File Name' && sanitizedValue.trim()) {
+      const validation = validateMainframeDatasetName(sanitizedValue.trim());
+      if (!validation.isValid) {
+        newErrors[inputName] = validation.errors[0];
+      } else {
+        delete newErrors[inputName];
+      }
+    }
+
+    // Validate DCB parameters for SendFile
+    if (functionData?.id === 'sendfile' && ['RECFM', 'LRECL', 'BLKSIZE'].includes(inputName)) {
+      const currentValues = { ...inputValues, [inputName]: sanitizedValue };
+      const dcb = parseDCB(currentValues);
+
+      if (Object.keys(dcb).length > 0) {
+        const validation = validateDCB(dcb);
+        if (!validation.isValid) {
+          // Find error related to this specific field
+          const relevantError = validation.errors.find(err =>
+            err.toLowerCase().includes(inputName.toLowerCase())
+          );
+          if (relevantError) {
+            newErrors[inputName] = relevantError;
+          } else if (validation.errors.length > 0) {
+            // If there's a cross-field validation error, show it on the first relevant field
+            newErrors[inputName] = validation.errors[0];
+          } else {
+            delete newErrors[inputName];
+          }
+        } else {
+          delete newErrors[inputName];
+        }
+      }
+    }
+
+    // Clear error when field is empty (except for required fields)
+    if (!sanitizedValue.trim() && errors[inputName]) {
+      delete newErrors[inputName];
+    }
+
+    setErrors(newErrors);
 
     if (inputName === 'Use Latest Job ID') {
       const mode = (sanitizedValue.toLowerCase() || 'latest');
@@ -175,7 +225,7 @@ export const InputConfigModal: React.FC<InputConfigModalProps> = ({
       const jobIdMode = getJobIdMode();
       functionData.inputs.forEach(input => {
         const value = inputValues[input.name]?.trim() || '';
-        
+
         if (input.name === 'Job Identifier' && jobIdMode !== 'custom') {
           return;
         }
@@ -184,7 +234,7 @@ export const InputConfigModal: React.FC<InputConfigModalProps> = ({
           return;
         }
 
-        // Basic validation - you can extend this
+        // Basic validation
         if (value.length === 0) {
           newErrors[input.name] = `${input.name} cannot be empty`;
           isValid = false;
@@ -192,7 +242,57 @@ export const InputConfigModal: React.FC<InputConfigModalProps> = ({
           newErrors[input.name] = `${input.name} is too long (max 500 characters)`;
           isValid = false;
         }
+
+        // Specialized validations
+        if (value) {
+          // Windows file name validation
+          if (input.name === 'Windows File name') {
+            const validation = validateWindowsFileName(value);
+            if (!validation.isValid) {
+              newErrors[input.name] = validation.errors[0];
+              isValid = false;
+            }
+          }
+
+          // Mainframe file name validation
+          if (input.name === 'Mainframe File Name') {
+            const validation = validateMainframeDatasetName(value);
+            if (!validation.isValid) {
+              newErrors[input.name] = validation.errors[0];
+              isValid = false;
+            }
+          }
+        }
       });
+
+      // DCB validation for SendFile
+      if (functionData.id === 'sendfile') {
+        const dcb = parseDCB(inputValues);
+        if (Object.keys(dcb).length > 0) {
+          const validation = validateDCB(dcb);
+          if (!validation.isValid) {
+            // Assign DCB errors to the first DCB field that has an issue
+            validation.errors.forEach(error => {
+              if (error.toLowerCase().includes('recfm')) {
+                newErrors['RECFM'] = error;
+              } else if (error.toLowerCase().includes('lrecl')) {
+                newErrors['LRECL'] = error;
+              } else if (error.toLowerCase().includes('blksize')) {
+                newErrors['BLKSIZE'] = error;
+              } else {
+                // General DCB error, assign to the first DCB field
+                const firstDcbField = functionData.inputs.find(inp =>
+                  inp.name === 'RECFM' || inp.name === 'LRECL' || inp.name === 'BLKSIZE'
+                );
+                if (firstDcbField && !newErrors[firstDcbField.name]) {
+                  newErrors[firstDcbField.name] = error;
+                }
+              }
+            });
+            isValid = false;
+          }
+        }
+      }
     }
 
     setErrors(newErrors);
