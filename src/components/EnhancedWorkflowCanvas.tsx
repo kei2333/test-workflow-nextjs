@@ -12,6 +12,7 @@ interface EnhancedWorkflowCanvasProps {
   onItemDragOver: (e: React.DragEvent, index: number) => void;
   onItemDrop: (e: React.DragEvent, index: number) => void;
   onItemDragStart: (e: React.DragEvent, index: number) => void;
+  onItemDragEnd: (e: React.DragEvent) => void;
   onEditItem: (id: string) => void;
   onRemoveItem: (id: string) => void;
   onRunWorkflow: () => void;
@@ -28,6 +29,7 @@ export const EnhancedWorkflowCanvas: React.FC<EnhancedWorkflowCanvasProps> = ({
   onItemDragOver,
   onItemDrop,
   onItemDragStart,
+  onItemDragEnd,
   onEditItem,
   onRemoveItem,
   onRunWorkflow,
@@ -234,6 +236,7 @@ export const EnhancedWorkflowCanvas: React.FC<EnhancedWorkflowCanvasProps> = ({
                     <div
                       draggable={!isRunning}
                       onDragStart={(e) => onItemDragStart(e, index)}
+                      onDragEnd={onItemDragEnd}
                       onDragOver={(e) => onItemDragOver(e, index)}
                       onDrop={(e) => onItemDrop(e, index)}
                       className={`

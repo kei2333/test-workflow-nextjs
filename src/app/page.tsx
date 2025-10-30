@@ -41,6 +41,44 @@ export default function Home() {
   // State for drag and drop
   const [draggedFunction, setDraggedFunction] = useState<string>('');
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [draggingWorkflowIndex, setDraggingWorkflowIndex] = useState<number | null>(null);
+
+  const readWorkflowItemIndex = useCallback((dataTransfer: DataTransfer): number | null => {
+    const workflowData = dataTransfer.getData('text/workflow-item');
+    if (workflowData) {
+      const parsed = parseInt(workflowData, 10);
+      if (!Number.isNaN(parsed)) {
+        return parsed;
+      }
+    }
+
+    const plainData = dataTransfer.getData('text/plain');
+    if (plainData && plainData.startsWith('workflow-item:')) {
+      const parsed = parseInt(plainData.slice('workflow-item:'.length), 10);
+      if (!Number.isNaN(parsed)) {
+        return parsed;
+      }
+    }
+
+    return draggingWorkflowIndex;
+  }, [draggingWorkflowIndex]);
+
+  const readFunctionId = useCallback((dataTransfer: DataTransfer): string => {
+    const plainData = dataTransfer.getData('text/plain');
+    if (!plainData) {
+      return '';
+    }
+
+    if (plainData.startsWith('function:')) {
+      return plainData.slice('function:'.length);
+    }
+
+    if (plainData.startsWith('workflow-item:')) {
+      return '';
+    }
+
+    return plainData;
+  }, []);
 
   // State for modals
   const [showInputModal, setShowInputModal] = useState(false);
@@ -143,7 +181,7 @@ export default function Home() {
   // Drag and drop handlers
   const handleDragStart = useCallback((e: React.DragEvent, functionId: string) => {
     setDraggedFunction(functionId);
-    e.dataTransfer.setData('text/plain', functionId);
+    e.dataTransfer.setData('text/plain', `function:${functionId}`);
     
     // Create custom drag image
     const draggedFunc = functions.find(f => f.id === functionId);
@@ -182,17 +220,33 @@ export default function Home() {
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    const functionId = e.dataTransfer.getData('text/plain');
+    const workflowIndex = readWorkflowItemIndex(e.dataTransfer);
+
+    if (workflowIndex !== null && !Number.isNaN(workflowIndex)) {
+      if (workflowIndex >= 0 && workflowIndex < workflowItems.length) {
+        if (workflowIndex !== workflowItems.length - 1) {
+          reorderWorkflowItems(workflowIndex, workflowItems.length - 1);
+          addLog('info', `Workflow item moved from position ${workflowIndex + 1} to ${workflowItems.length}`);
+        }
+      }
+      setDraggingWorkflowIndex(null);
+      setDragOverIndex(null);
+      setDraggedFunction('');
+      return;
+    }
+
+    const functionId = readFunctionId(e.dataTransfer);
     const functionData = functions.find(f => f.id === functionId);
-    
+
     if (functionData) {
       setPendingFunction(functionData);
       setPendingInsertIndex(workflowItems.length);
       setShowInputModal(true);
     }
+    setDraggingWorkflowIndex(null);
     setDraggedFunction('');
     setDragOverIndex(null);
-  }, [functions, workflowItems.length]);
+  }, [functions, workflowItems.length, addLog, reorderWorkflowItems, readFunctionId, readWorkflowItemIndex]);
 
   const handleItemDragOver = useCallback((e: React.DragEvent, index: number) => {
     e.preventDefault();
@@ -208,40 +262,46 @@ export default function Home() {
 
   const handleItemDragStart = useCallback((e: React.DragEvent, index: number) => {
     e.dataTransfer.setData('text/workflow-item', index.toString());
+    e.dataTransfer.setData('text/plain', `workflow-item:${index}`);
     e.dataTransfer.effectAllowed = 'move';
-  }, []);
+    setDraggingWorkflowIndex(index);
+  }, [setDraggingWorkflowIndex]);
+
+  const handleItemDragEnd = useCallback(() => {
+    setDraggingWorkflowIndex(null);
+    setDragOverIndex(null);
+  }, [setDragOverIndex]);
 
   const handleItemDrop = useCallback((e: React.DragEvent, index: number) => {
     e.preventDefault();
     e.stopPropagation();
 
-    // Check if we're reordering a workflow item
-    const workflowItemIndex = e.dataTransfer.getData('text/workflow-item');
-    if (workflowItemIndex !== '') {
-      const fromIndex = parseInt(workflowItemIndex, 10);
-      if (!isNaN(fromIndex)) {
-        const boundingRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-        const mouseY = e.clientY;
-        const itemCenterY = boundingRect.top + boundingRect.height / 2;
-        let toIndex = mouseY < itemCenterY ? index : index + 1;
+    const fromIndex = readWorkflowItemIndex(e.dataTransfer);
+    if (fromIndex !== null && !Number.isNaN(fromIndex)) {
+      const boundingRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      const mouseY = e.clientY;
+      const itemCenterY = boundingRect.top + boundingRect.height / 2;
 
-        // Adjust toIndex if moving down
-        if (fromIndex < toIndex) {
-          toIndex--;
-        }
+      let targetIndex = mouseY < itemCenterY ? index : index + 1;
 
-        if (fromIndex !== toIndex) {
-          reorderWorkflowItems(fromIndex, toIndex);
-          addLog('info', `Workflow item moved from position ${fromIndex + 1} to ${toIndex + 1}`);
-        }
-
-        setDragOverIndex(null);
-        return;
+      if (fromIndex < targetIndex) {
+        targetIndex -= 1;
       }
+
+      targetIndex = Math.max(0, Math.min(targetIndex, workflowItems.length - 1));
+
+      if (fromIndex !== targetIndex) {
+        reorderWorkflowItems(fromIndex, targetIndex);
+        addLog('info', `Workflow item moved from position ${fromIndex + 1} to ${targetIndex + 1}`);
+      }
+
+      setDraggingWorkflowIndex(null);
+      setDragOverIndex(null);
+      return;
     }
 
     // Otherwise, check if we're adding a new function
-    const functionId = e.dataTransfer.getData('text/plain');
+    const functionId = readFunctionId(e.dataTransfer);
     const functionData = functions.find(f => f.id === functionId);
 
     if (functionData) {
@@ -255,9 +315,10 @@ export default function Home() {
       setShowInputModal(true);
     }
 
+    setDraggingWorkflowIndex(null);
     setDraggedFunction('');
     setDragOverIndex(null);
-  }, [functions, reorderWorkflowItems, addLog]);
+  }, [functions, reorderWorkflowItems, addLog, readFunctionId, readWorkflowItemIndex, workflowItems.length]);
 
   // Edit workflow item handler
   const handleEditWorkflowItem = useCallback((id: string) => {
@@ -483,6 +544,7 @@ export default function Home() {
               onItemDragOver={handleItemDragOver}
               onItemDrop={handleItemDrop}
               onItemDragStart={handleItemDragStart}
+              onItemDragEnd={handleItemDragEnd}
               onEditItem={handleEditWorkflowItem}
               onRemoveItem={removeWorkflowItem}
               onRunWorkflow={handleRunWorkflow}
