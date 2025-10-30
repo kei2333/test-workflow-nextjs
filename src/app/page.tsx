@@ -217,7 +217,36 @@ export default function Home() {
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-  }, []);
+
+    // Only handle workflow item reordering, not function dragging from sidebar
+    const workflowIndex = readWorkflowItemIndex(e.dataTransfer);
+    if (workflowIndex === null || Number.isNaN(workflowIndex)) {
+      return;
+    }
+
+    // When dragging in empty space of canvas, determine insert position based on mouse Y
+    if (workflowItems.length > 0) {
+      const target = e.currentTarget as HTMLElement;
+      const canvas = target.querySelector('[role="main"]') as HTMLElement;
+
+      if (canvas) {
+        const canvasRect = canvas.getBoundingClientRect();
+        const mouseY = e.clientY;
+        const relativeY = mouseY - canvasRect.top;
+        const canvasHeight = canvasRect.height;
+
+        // Top 25% of canvas → insert at position 0
+        if (relativeY < canvasHeight * 0.25) {
+          setDragOverIndex(0);
+        }
+        // Bottom 25% of canvas → insert at last position
+        else if (relativeY > canvasHeight * 0.75) {
+          setDragOverIndex(workflowItems.length);
+        }
+        // Middle area is handled by handleItemDragOver
+      }
+    }
+  }, [workflowItems.length, readWorkflowItemIndex]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -566,6 +595,7 @@ export default function Home() {
               workflowItems={workflowItems}
               draggedFunction={draggedFunction}
               dragOverIndex={dragOverIndex}
+              draggingWorkflowIndex={draggingWorkflowIndex}
               executionProgress={executionProgress}
               onDragOver={handleDragOver}
               onDrop={handleDrop}
