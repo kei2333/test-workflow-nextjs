@@ -216,6 +216,7 @@ export default function Home() {
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -546,7 +547,11 @@ export default function Home() {
           </div>
 
           {/* Workflow Canvas */}
-          <div className="flex-1">
+          <div
+            className="flex-1"
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+          >
             <EnhancedWorkflowCanvas
               workflowItems={workflowItems}
               draggedFunction={draggedFunction}
