@@ -232,7 +232,10 @@ export class FunctionExecutor {
 
       case 'fileconv':
         return await this.executeFileConv(functionName, sanitizedInputs);
-      
+
+      case 'filereverseconv':
+        return await this.executeFileReverseConv(functionName, sanitizedInputs);
+
       case 'gotoispfmainscreen':
         return `${functionName}: Successfully returned to ISPF main screen. Pre-requisite is that LogonISPF should be true.`;
       
@@ -753,6 +756,52 @@ export class FunctionExecutor {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`File conversion failed: ${errorMessage}`);
+    }
+  }
+
+  private static async executeFileReverseConv(
+    functionName: string,
+    inputs: Record<string, string>
+  ): Promise<string> {
+    try {
+      // Get input parameters with defaults
+      const excelFileName = inputs['Excel file name in windows'] || 'converted-output.xlsx';
+      const excelLocation = inputs['Windows excel file location'] || 'downloads';
+      const copybookName = inputs['Copybook name in windows'] || 'Copybook - input.txt';
+      const copybookLocation = inputs['Windows Copybook Location'] || 'uploads';
+      const outputFileName = inputs['Output text file name'] || 'roundtrip-output.txt';
+      const outputLocation = inputs['Output text file location'] || 'downloads';
+      const outputFormat = inputs['Output format'] || 'fixed';
+
+      // Construct relative paths (server will resolve to absolute paths)
+      const excelFilePath = `${excelLocation}/${excelFileName}`;
+      const copybookPath = `${copybookLocation}/${copybookName}`;
+
+      // Call the reverse conversion API
+      const response = await fetch('/api/file/reverse-convert', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          copybookPath,
+          excelFilePath,
+          outputFileName,
+          outputLocation,
+          outputFormat
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        return `${functionName}: Successfully converted ${data.recordCount} records to ${data.format} text file '${outputFileName}'. Output saved to '${data.outputPath}'. Processed ${data.fieldCount} fields from copybook.`;
+      } else {
+        throw new Error(data.error || 'Reverse conversion failed');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Reverse conversion failed: ${errorMessage}`);
     }
   }
 }

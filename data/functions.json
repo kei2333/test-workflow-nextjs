@@ -316,6 +316,61 @@
     ]
   },
   {
+    "id": "filereverseconv",
+    "name": "FileReverseConv",
+    "description": "Excel to Text Conversion",
+    "inputs": [
+      {
+        "name": "Excel file name in windows",
+        "placeholder": "File1",
+        "defaultValue": "converted-output.xlsx"
+      },
+      {
+        "name": "Windows excel file location",
+        "placeholder": "Excel file location",
+        "defaultValue": "downloads"
+      },
+      {
+        "name": "Copybook name in windows",
+        "placeholder": "File2",
+        "defaultValue": "Copybook - input.txt"
+      },
+      {
+        "name": "Windows Copybook Location",
+        "placeholder": "Copybook location",
+        "defaultValue": "uploads"
+      },
+      {
+        "name": "Output text file name",
+        "placeholder": "File3",
+        "defaultValue": "roundtrip-output.txt"
+      },
+      {
+        "name": "Output text file location",
+        "placeholder": "Text file location",
+        "defaultValue": "downloads"
+      },
+      {
+        "name": "Output format",
+        "placeholder": "fixed or csv",
+        "defaultValue": "fixed",
+        "type": "radio",
+        "options": [
+          {
+            "value": "fixed",
+            "label": "Fixed Length",
+            "description": "Fixed-length text format based on copybook positions"
+          },
+          {
+            "value": "csv",
+            "label": "CSV",
+            "description": "Comma-separated values format"
+          }
+        ]
+      }
+    ]
+  },
+  {
     "id": "gotoispfmainscreen",
     "name": "GotoISPFmainscreen",
     "description": "Return to main screen",
