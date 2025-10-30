@@ -251,12 +251,25 @@ export default function Home() {
   const handleItemDragOver = useCallback((e: React.DragEvent, index: number) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     const boundingRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const mouseY = e.clientY;
-    const itemCenterY = boundingRect.top + boundingRect.height / 2;
-    
-    const insertIndex = mouseY < itemCenterY ? index : index + 1;
+    const itemHeight = boundingRect.height;
+    const itemTop = boundingRect.top;
+
+    // For the first item, make it easier to drop above it (larger detection zone)
+    // For other items, use standard center-based detection
+    let insertIndex: number;
+    if (index === 0) {
+      // First item: use top 60% for "before" position
+      const threshold = itemTop + itemHeight * 0.6;
+      insertIndex = mouseY < threshold ? 0 : 1;
+    } else {
+      // Other items: standard center detection
+      const itemCenterY = itemTop + itemHeight / 2;
+      insertIndex = mouseY < itemCenterY ? index : index + 1;
+    }
+
     setDragOverIndex(insertIndex);
   }, []);
 
