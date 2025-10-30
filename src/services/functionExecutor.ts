@@ -1,6 +1,8 @@
 import { WorkflowItem } from '@/types/workflow';
 import { sanitizeInput } from '@/utils/validation';
 import { mainframeApi } from '@/services/mainframeApi';
+import { parseDCB, validateDCB, formatDCB } from '@/utils/dcbValidator';
+import { validateMainframeDatasetName, validateWindowsFileName } from '@/utils/fileNameValidator';
 
 export interface ExecutionResult {
   success: boolean;
@@ -373,6 +375,42 @@ export class FunctionExecutor {
       const windowsFileLocation = inputs['Windows File Location'] || 'uploads';
       const mainframeFileName = inputs['Mainframe File Name'] || 'SHIPRA.TEST.FILE2';
 
+      // Validate Windows file name
+      const windowsFileValidation = validateWindowsFileName(windowsFileName);
+      if (!windowsFileValidation.isValid) {
+        throw new Error(`Invalid Windows file name: ${windowsFileValidation.errors.join('; ')}`);
+      }
+      if (windowsFileValidation.warnings.length > 0) {
+        console.warn(`Windows file name warnings: ${windowsFileValidation.warnings.join('; ')}`);
+      }
+
+      // Validate mainframe dataset name
+      const mainframeFileValidation = validateMainframeDatasetName(mainframeFileName);
+      if (!mainframeFileValidation.isValid) {
+        throw new Error(`Invalid mainframe dataset name: ${mainframeFileValidation.errors.join('; ')}`);
+      }
+      if (mainframeFileValidation.warnings.length > 0) {
+        console.warn(`Mainframe dataset name warnings: ${mainframeFileValidation.warnings.join('; ')}`);
+      }
+
+      // Parse and validate DCB parameters if provided
+      const dcb = parseDCB(inputs);
+      let dcbInfo = '';
+
+      if (Object.keys(dcb).length > 0) {
+        const validation = validateDCB(dcb);
+
+        if (!validation.isValid) {
+          throw new Error(`Invalid DCB parameters: ${validation.errors.join('; ')}`);
+        }
+
+        if (validation.warnings.length > 0) {
+          console.warn(`DCB warnings: ${validation.warnings.join('; ')}`);
+        }
+
+        dcbInfo = ` with DCB parameters (${formatDCB(dcb)})`;
+      }
+
       // Construct full local path
       const localPath = `${windowsFileLocation}/${windowsFileName}`;
 
@@ -395,14 +433,39 @@ export class FunctionExecutor {
       });
 
       if (response.success) {
-        return `${functionName}: File transfer completed successfully. Transferred '${windowsFileName}' from '${windowsFileLocation}' to mainframe dataset '${mainframeFileName}'. Bytes transferred: ${response.bytes_transferred || 0}.`;
+        return `${functionName}: File transfer completed successfully. Transferred '${windowsFileName}' from '${windowsFileLocation}' to mainframe dataset '${mainframeFileName}'${dcbInfo}. Bytes transferred: ${response.bytes_transferred || 0}.`;
       } else {
-        throw new Error(`File transfer failed - ${response.message}`);
+        // Detailed error from API
+        const reason = response.message || 'Unknown reason';
+        throw new Error(`File transfer failed: ${reason}. Check that the file exists at '${windowsFileLocation}/${windowsFileName}' and the mainframe dataset '${mainframeFileName}' is accessible.`);
       }
 
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(`Failed to send file: ${errorMessage}`);
+      // Enhanced error handling
+      if (error instanceof Error) {
+        // Check for specific error types
+        if (error.message.includes('Invalid')) {
+          // Validation errors - already detailed
+          throw error;
+        } else if (error.message.includes('File transfer failed')) {
+          // API errors - already detailed
+          throw error;
+        } else if (error.message.includes('No active mainframe session')) {
+          // Session errors - already clear
+          throw error;
+        } else if (error.message.includes('fetch')) {
+          // Network errors
+          const fileName = inputs['Windows File name'] || 'File1';
+          throw new Error(`Network error while sending file '${fileName}': ${error.message}. Please check your connection to the backend server.`);
+        } else {
+          // Other errors
+          const fileName = inputs['Windows File name'] || 'File1';
+          const datasetName = inputs['Mainframe File Name'] || 'SHIPRA.TEST.FILE2';
+          throw new Error(`Failed to send file '${fileName}' to '${datasetName}': ${error.message}`);
+        }
+      }
+      const fileName = inputs['Windows File name'] || 'File1';
+      throw new Error(`Failed to send file '${fileName}': Unknown error occurred`);
     }
   }
 
@@ -415,6 +478,24 @@ export class FunctionExecutor {
       const mainframeFileName = inputs['Mainframe File Name'] || 'TRA026.FLAT.FILEIN';
       const windowsFileName = inputs['Windows File name'] || 'File1';
       const windowsFileLocation = inputs['Windows File Location'] || './downloads';
+
+      // Validate Windows file name
+      const windowsFileValidation = validateWindowsFileName(windowsFileName);
+      if (!windowsFileValidation.isValid) {
+        throw new Error(`Invalid Windows file name: ${windowsFileValidation.errors.join('; ')}`);
+      }
+      if (windowsFileValidation.warnings.length > 0) {
+        console.warn(`Windows file name warnings: ${windowsFileValidation.warnings.join('; ')}`);
+      }
+
+      // Validate mainframe dataset name
+      const mainframeFileValidation = validateMainframeDatasetName(mainframeFileName);
+      if (!mainframeFileValidation.isValid) {
+        throw new Error(`Invalid mainframe dataset name: ${mainframeFileValidation.errors.join('; ')}`);
+      }
+      if (mainframeFileValidation.warnings.length > 0) {
+        console.warn(`Mainframe dataset name warnings: ${mainframeFileValidation.warnings.join('; ')}`);
+      }
 
       // Construct full local path
       const localPath = `${windowsFileLocation}/${windowsFileName}`;
@@ -440,12 +521,37 @@ export class FunctionExecutor {
       if (response.success) {
         return `${functionName}: File import completed successfully. Retrieved '${mainframeFileName}' to '${windowsFileName}' at '${windowsFileLocation}'. Bytes received: ${response.bytes_received || 0}.`;
       } else {
-        throw new Error(`File retrieval failed - ${response.message}`);
+        // Detailed error from API
+        const reason = response.message || 'Unknown reason';
+        throw new Error(`File retrieval failed: ${reason}. Check that the mainframe dataset '${mainframeFileName}' exists and is accessible, and the local directory '${windowsFileLocation}' is writable.`);
       }
 
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(`Failed to get file: ${errorMessage}`);
+      // Enhanced error handling
+      if (error instanceof Error) {
+        // Check for specific error types
+        if (error.message.includes('Invalid')) {
+          // Validation errors - already detailed
+          throw error;
+        } else if (error.message.includes('File retrieval failed')) {
+          // API errors - already detailed
+          throw error;
+        } else if (error.message.includes('No active mainframe session')) {
+          // Session errors - already clear
+          throw error;
+        } else if (error.message.includes('fetch')) {
+          // Network errors
+          const datasetName = inputs['Mainframe File Name'] || 'TRA026.FLAT.FILEIN';
+          throw new Error(`Network error while retrieving file '${datasetName}': ${error.message}. Please check your connection to the backend server.`);
+        } else {
+          // Other errors
+          const datasetName = inputs['Mainframe File Name'] || 'TRA026.FLAT.FILEIN';
+          const fileName = inputs['Windows File name'] || 'File1';
+          throw new Error(`Failed to retrieve file '${datasetName}' to '${fileName}': ${error.message}`);
+        }
+      }
+      const datasetName = inputs['Mainframe File Name'] || 'TRA026.FLAT.FILEIN';
+      throw new Error(`Failed to retrieve file '${datasetName}': Unknown error occurred`);
     }
   }
 

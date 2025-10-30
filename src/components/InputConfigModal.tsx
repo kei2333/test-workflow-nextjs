@@ -8,13 +8,15 @@ interface InputConfigModalProps {
   onClose: () => void;
   onConfirm: (inputs: Record<string, string>) => void;
   functionData: FunctionData | null;
+  initialValues?: Record<string, string>; // For editing existing items
 }
 
 export const InputConfigModal: React.FC<InputConfigModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
-  functionData
+  functionData,
+  initialValues
 }) => {
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -37,6 +39,12 @@ export const InputConfigModal: React.FC<InputConfigModalProps> = ({
 
   useEffect(() => {
     if (functionData) {
+      // If initialValues provided (editing mode), use them
+      if (initialValues) {
+        setInputValues(initialValues);
+        return;
+      }
+
       // Initialize input values from environment variables or placeholders
       const initialInputs: Record<string, string> = {};
 
@@ -82,7 +90,7 @@ export const InputConfigModal: React.FC<InputConfigModalProps> = ({
       setInputValues(initialInputs);
       setErrors({});
     }
-  }, [functionData]);
+  }, [functionData, initialValues]);
 
   const getJobIdMode = () => {
     const rawValue = inputValues['Use Latest Job ID'] || '';
@@ -202,10 +210,6 @@ export const InputConfigModal: React.FC<InputConfigModalProps> = ({
     setInputValues({});
     setErrors({});
     onClose();
-  };
-
-  const isFileInputField = (inputName: string): boolean => {
-    return false;
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

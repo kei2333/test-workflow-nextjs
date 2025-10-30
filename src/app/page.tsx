@@ -25,7 +25,9 @@ export default function Home() {
   const {
     workflowItems,
     addWorkflowItem,
-    removeWorkflowItem
+    updateWorkflowItem,
+    removeWorkflowItem,
+    reorderWorkflowItems
   } = useWorkflow();
 
   // Removed notification system - using execution log only
@@ -47,6 +49,7 @@ export default function Home() {
   const [editingFunction, setEditingFunction] = useState<FunctionData | null>(null);
   const [pendingFunction, setPendingFunction] = useState<FunctionData | null>(null);
   const [pendingInsertIndex, setPendingInsertIndex] = useState<number | null>(null);
+  const [editingWorkflowItemId, setEditingWorkflowItemId] = useState<string | null>(null);
 
   // State for workflow execution
   const [executionProgress, setExecutionProgress] = useState<ExecutionProgress | null>(null);
@@ -203,43 +206,97 @@ export default function Home() {
     setDragOverIndex(insertIndex);
   }, []);
 
+  const handleItemDragStart = useCallback((e: React.DragEvent, index: number) => {
+    e.dataTransfer.setData('text/workflow-item', index.toString());
+    e.dataTransfer.effectAllowed = 'move';
+  }, []);
+
   const handleItemDrop = useCallback((e: React.DragEvent, index: number) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
+    // Check if we're reordering a workflow item
+    const workflowItemIndex = e.dataTransfer.getData('text/workflow-item');
+    if (workflowItemIndex !== '') {
+      const fromIndex = parseInt(workflowItemIndex, 10);
+      if (!isNaN(fromIndex)) {
+        const boundingRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        const mouseY = e.clientY;
+        const itemCenterY = boundingRect.top + boundingRect.height / 2;
+        let toIndex = mouseY < itemCenterY ? index : index + 1;
+
+        // Adjust toIndex if moving down
+        if (fromIndex < toIndex) {
+          toIndex--;
+        }
+
+        if (fromIndex !== toIndex) {
+          reorderWorkflowItems(fromIndex, toIndex);
+          addLog('info', `Workflow item moved from position ${fromIndex + 1} to ${toIndex + 1}`);
+        }
+
+        setDragOverIndex(null);
+        return;
+      }
+    }
+
+    // Otherwise, check if we're adding a new function
     const functionId = e.dataTransfer.getData('text/plain');
     const functionData = functions.find(f => f.id === functionId);
-    
+
     if (functionData) {
       const boundingRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
       const mouseY = e.clientY;
       const itemCenterY = boundingRect.top + boundingRect.height / 2;
       const insertIndex = mouseY < itemCenterY ? index : index + 1;
-      
+
       setPendingFunction(functionData);
       setPendingInsertIndex(insertIndex);
       setShowInputModal(true);
     }
-    
+
     setDraggedFunction('');
     setDragOverIndex(null);
-  }, [functions]);
+  }, [functions, reorderWorkflowItems, addLog]);
+
+  // Edit workflow item handler
+  const handleEditWorkflowItem = useCallback((id: string) => {
+    const item = workflowItems.find(i => i.id === id);
+    if (item) {
+      const functionData = functions.find(f => f.id === item.functionId);
+      if (functionData) {
+        setPendingFunction(functionData);
+        setEditingWorkflowItemId(id);
+        setShowInputModal(true);
+      }
+    }
+  }, [workflowItems, functions]);
 
   // Modal handlers
   const handleInputConfirm = useCallback((inputs: Record<string, string>) => {
-    if (pendingFunction && pendingInsertIndex !== null) {
+    if (editingWorkflowItemId) {
+      // Editing existing workflow item
+      updateWorkflowItem(editingWorkflowItemId, inputs);
+      const item = workflowItems.find(i => i.id === editingWorkflowItemId);
+      if (item) {
+        addLog('success', `${item.name} parameters updated`);
+      }
+      setEditingWorkflowItemId(null);
+    } else if (pendingFunction && pendingInsertIndex !== null) {
+      // Adding new workflow item
       addWorkflowItem(pendingFunction, inputs, pendingInsertIndex);
       addLog('success', `${pendingFunction.name} added to workflow`);
     }
     setShowInputModal(false);
     setPendingFunction(null);
     setPendingInsertIndex(null);
-  }, [pendingFunction, pendingInsertIndex, addWorkflowItem, addLog]);
+  }, [editingWorkflowItemId, pendingFunction, pendingInsertIndex, updateWorkflowItem, addWorkflowItem, workflowItems, addLog]);
 
   const handleInputCancel = useCallback(() => {
     setShowInputModal(false);
     setPendingFunction(null);
     setPendingInsertIndex(null);
+    setEditingWorkflowItemId(null);
   }, []);
 
   // Function management handlers
@@ -306,9 +363,9 @@ export default function Home() {
               const result = progress.results[i];
               const stepName = workflowItems[i]?.name;
               if (result.success) {
-                addLog('success', result.message, stepName);
+                addLog('success', result.message, stepName, result.executionTime);
               } else {
-                addLog('error', result.message, stepName);
+                addLog('error', result.message, stepName, result.executionTime);
               }
             }
             displayedResultsCount = progress.results.length;
@@ -425,6 +482,8 @@ export default function Home() {
               onDrop={handleDrop}
               onItemDragOver={handleItemDragOver}
               onItemDrop={handleItemDrop}
+              onItemDragStart={handleItemDragStart}
+              onEditItem={handleEditWorkflowItem}
               onRemoveItem={removeWorkflowItem}
               onRunWorkflow={handleRunWorkflow}
               isRunning={!!executionProgress?.isRunning}
@@ -540,6 +599,11 @@ export default function Home() {
           onClose={handleInputCancel}
           onConfirm={handleInputConfirm}
           functionData={pendingFunction}
+          initialValues={
+            editingWorkflowItemId
+              ? workflowItems.find(i => i.id === editingWorkflowItemId)?.inputs
+              : undefined
+          }
         />
 
         <FunctionManagementModal

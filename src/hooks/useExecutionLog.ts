@@ -8,18 +8,20 @@ export const useExecutionLog = () => {
   const addLog = useCallback((
     type: ExecutionLog['type'],
     message: string,
-    stepName?: string
+    stepName?: string,
+    executionTime?: number
   ) => {
     const newLog: ExecutionLog = {
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       timestamp: new Date().toLocaleTimeString(),
       type,
       message,
-      stepName
+      stepName,
+      executionTime
     };
-    
+
     setLogs(prevLogs => [...prevLogs, newLog]);
-    
+
     // Auto-show panel when new logs are added
     if (!isVisible) {
       setIsVisible(true);

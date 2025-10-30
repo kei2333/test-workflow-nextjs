@@ -4,6 +4,7 @@ import { WorkflowItem, FunctionData } from '@/types/workflow';
 interface UseWorkflowReturn {
   workflowItems: WorkflowItem[];
   addWorkflowItem: (functionData: FunctionData, inputs: Record<string, string>, insertIndex?: number) => void;
+  updateWorkflowItem: (id: string, inputs: Record<string, string>) => void;
   removeWorkflowItem: (id: string) => void;
   clearWorkflow: () => void;
   reorderWorkflowItems: (fromIndex: number, toIndex: number) => void;
@@ -32,6 +33,12 @@ export const useWorkflow = (): UseWorkflowReturn => {
       newItems.splice(index, 0, newWorkflowItem);
       return newItems;
     });
+  }, []);
+
+  const updateWorkflowItem = useCallback((id: string, inputs: Record<string, string>) => {
+    setWorkflowItems(prev => prev.map(item =>
+      item.id === id ? { ...item, inputs: { ...inputs } } : item
+    ));
   }, []);
 
   const removeWorkflowItem = useCallback((id: string) => {
@@ -74,6 +81,7 @@ export const useWorkflow = (): UseWorkflowReturn => {
   return {
     workflowItems,
     addWorkflowItem,
+    updateWorkflowItem,
     removeWorkflowItem,
     clearWorkflow,
     reorderWorkflowItems,

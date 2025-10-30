@@ -23,7 +23,6 @@ export function parseCopybook(copybookContent: string): CopybookField[] {
   const fields: CopybookField[] = [];
   const lines = copybookContent.split('\n');
   let currentPosition = 0;
-  let processedLines = 0;
 
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
     const line = lines[lineIndex];
@@ -73,7 +72,6 @@ export function parseCopybook(copybookContent: string): CopybookField[] {
       });
 
       currentPosition += length;
-      processedLines++;
     }
   }
 
