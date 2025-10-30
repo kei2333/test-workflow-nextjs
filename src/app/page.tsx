@@ -331,21 +331,20 @@ export default function Home() {
 
     const fromIndex = readWorkflowItemIndex(e.dataTransfer);
     if (fromIndex !== null && !Number.isNaN(fromIndex)) {
-      const boundingRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      const mouseY = e.clientY;
-      const itemCenterY = boundingRect.top + boundingRect.height / 2;
+      // Use dragOverIndex for strong binding with visual preview
+      if (dragOverIndex !== null) {
+        // Calculate the actual target position accounting for the removed item
+        let finalTargetIndex = dragOverIndex;
+        if (fromIndex < dragOverIndex) {
+          finalTargetIndex = dragOverIndex - 1;
+        }
 
-      let targetIndex = mouseY < itemCenterY ? index : index + 1;
+        finalTargetIndex = Math.max(0, Math.min(finalTargetIndex, workflowItems.length - 1));
 
-      if (fromIndex < targetIndex) {
-        targetIndex -= 1;
-      }
-
-      targetIndex = Math.max(0, Math.min(targetIndex, workflowItems.length - 1));
-
-      if (fromIndex !== targetIndex) {
-        reorderWorkflowItems(fromIndex, targetIndex);
-        addLog('info', `Workflow item moved from position ${fromIndex + 1} to ${targetIndex + 1}`);
+        if (fromIndex !== finalTargetIndex) {
+          reorderWorkflowItems(fromIndex, finalTargetIndex);
+          addLog('info', `Workflow item moved from position ${fromIndex + 1} to ${finalTargetIndex + 1}`);
+        }
       }
 
       setDraggingWorkflowIndex(null);
@@ -371,7 +370,7 @@ export default function Home() {
     setDraggingWorkflowIndex(null);
     setDraggedFunction('');
     setDragOverIndex(null);
-  }, [functions, reorderWorkflowItems, addLog, readFunctionId, readWorkflowItemIndex, workflowItems.length]);
+  }, [functions, reorderWorkflowItems, addLog, readFunctionId, readWorkflowItemIndex, workflowItems.length, dragOverIndex]);
 
   // Edit workflow item handler
   const handleEditWorkflowItem = useCallback((id: string) => {
