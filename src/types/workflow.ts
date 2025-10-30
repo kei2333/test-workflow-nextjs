@@ -22,6 +22,7 @@ export interface WorkflowItem {
   name: string;
   functionId: string;
   inputs: Record<string, string>;
+  colorIndex: number; // Fixed color index that doesn't change when reordering
 }
 
 export interface FunctionFormData {

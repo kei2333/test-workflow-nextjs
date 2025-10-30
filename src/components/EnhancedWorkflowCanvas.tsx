@@ -238,7 +238,7 @@ export const EnhancedWorkflowCanvas: React.FC<EnhancedWorkflowCanvasProps> = ({
                       <div className={`
                         relative p-5 rounded-2xl opacity-60 animate-pulse shadow-2xl scale-105
                         transition-all duration-300 ease-out border-2 border-white/60
-                        bg-gradient-to-r ${getItemBackgroundGradient(getItemStatus(draggingWorkflowIndex), draggingWorkflowIndex)} text-white
+                        bg-gradient-to-r ${getItemBackgroundGradient(getItemStatus(draggingWorkflowIndex), workflowItems[draggingWorkflowIndex].colorIndex)} text-white
                       `}>
                         <div className="absolute inset-0 bg-white/10 rounded-2xl animate-pulse"></div>
                         <div className="flex items-center gap-4 relative z-10">
@@ -266,7 +266,7 @@ export const EnhancedWorkflowCanvas: React.FC<EnhancedWorkflowCanvasProps> = ({
                       className={`
                         group relative p-5 rounded-2xl flex items-center justify-between
                         transform transition-all duration-300 ease-out hover:scale-[1.02] shadow-lg hover:shadow-2xl
-                        bg-gradient-to-r ${getItemBackgroundGradient(status, index)} text-white
+                        bg-gradient-to-r ${getItemBackgroundGradient(status, item.colorIndex)} text-white
                         ${status === 'running' ? 'animate-pulse' : ''}
                         ${!isRunning ? 'cursor-move' : 'cursor-default'}
                         ${isDragging ? 'opacity-20 scale-90 blur-[2px] shadow-none' : 'opacity-100 scale-100 blur-0'}
@@ -337,7 +337,7 @@ export const EnhancedWorkflowCanvas: React.FC<EnhancedWorkflowCanvasProps> = ({
                       <div className={`
                         relative p-5 rounded-2xl opacity-60 animate-pulse shadow-2xl scale-105
                         transition-all duration-300 ease-out mt-4 border-2 border-white/60
-                        bg-gradient-to-r ${getItemBackgroundGradient(getItemStatus(draggingWorkflowIndex), draggingWorkflowIndex)} text-white
+                        bg-gradient-to-r ${getItemBackgroundGradient(getItemStatus(draggingWorkflowIndex), workflowItems[draggingWorkflowIndex].colorIndex)} text-white
                       `}>
                         <div className="absolute inset-0 bg-white/10 rounded-2xl animate-pulse"></div>
                         <div className="flex items-center gap-4 relative z-10">

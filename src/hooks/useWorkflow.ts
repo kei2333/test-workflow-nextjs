@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { WorkflowItem, FunctionData } from '@/types/workflow';
 
 interface UseWorkflowReturn {
@@ -14,18 +14,22 @@ interface UseWorkflowReturn {
 
 export const useWorkflow = (): UseWorkflowReturn => {
   const [workflowItems, setWorkflowItems] = useState<WorkflowItem[]>([]);
+  const colorCounterRef = React.useRef(0); // Track color assignment order
 
   const addWorkflowItem = useCallback((
-    functionData: FunctionData, 
-    inputs: Record<string, string>, 
+    functionData: FunctionData,
+    inputs: Record<string, string>,
     insertIndex?: number
   ) => {
     const newWorkflowItem: WorkflowItem = {
       id: `${functionData.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: functionData.name,
       functionId: functionData.id,
-      inputs: { ...inputs }
+      inputs: { ...inputs },
+      colorIndex: colorCounterRef.current % 5 // Assign color based on order (0-4)
     };
+
+    colorCounterRef.current += 1; // Increment counter for next item
 
     setWorkflowItems(prev => {
       const newItems = [...prev];
@@ -50,10 +54,14 @@ export const useWorkflow = (): UseWorkflowReturn => {
   }, []);
 
   const reorderWorkflowItems = useCallback((fromIndex: number, toIndex: number) => {
+    console.log('📦 reorderWorkflowItems called - fromIndex:', fromIndex, 'toIndex:', toIndex);
     setWorkflowItems(prev => {
+      console.log('📦 reorderWorkflowItems - prev items:', prev.map(item => item.name));
       const newItems = [...prev];
       const [movedItem] = newItems.splice(fromIndex, 1);
+      console.log('📦 reorderWorkflowItems - movedItem:', movedItem?.name);
       newItems.splice(toIndex, 0, movedItem);
+      console.log('📦 reorderWorkflowItems - new items:', newItems.map(item => item.name));
       return newItems;
     });
   }, []);

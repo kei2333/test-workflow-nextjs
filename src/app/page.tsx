@@ -219,8 +219,9 @@ export default function Home() {
     e.stopPropagation();
 
     // Only handle workflow item reordering, not function dragging from sidebar
-    const workflowIndex = readWorkflowItemIndex(e.dataTransfer);
-    if (workflowIndex === null || Number.isNaN(workflowIndex)) {
+    // Use draggingWorkflowIndex state instead of reading from dataTransfer
+    // (browsers don't allow reading dataTransfer during dragOver)
+    if (draggingWorkflowIndex === null) {
       return;
     }
 
@@ -246,40 +247,65 @@ export default function Home() {
         // Middle area is handled by handleItemDragOver
       }
     }
-  }, [workflowItems.length, readWorkflowItemIndex]);
+  }, [workflowItems.length, draggingWorkflowIndex]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    const workflowIndex = readWorkflowItemIndex(e.dataTransfer);
+    console.log('🔵 handleDrop called');
 
+    // Check if this event was already handled by handleItemDrop
+    if ((e as any)._workflowHandled) {
+      console.log('🔵 handleDrop - Already handled by handleItemDrop, skipping');
+      return;
+    }
+
+    const workflowIndex = readWorkflowItemIndex(e.dataTransfer);
+    console.log('🔵 handleDrop - workflowIndex:', workflowIndex);
+    console.log('🔵 handleDrop - dragOverIndex:', dragOverIndex);
+
+    // If dragging a workflow item, handle reordering (when dropped in empty space)
+    // Note: if dropped on another item, handleItemDrop will handle it instead
     if (workflowIndex !== null && !Number.isNaN(workflowIndex)) {
-      if (workflowIndex >= 0 && workflowIndex < workflowItems.length) {
-        // Use dragOverIndex if available, otherwise default to last position
-        const targetIndex = dragOverIndex !== null ? dragOverIndex : workflowItems.length;
+      console.log('🔵 handleDrop - This is a workflow item drag');
+
+      if (dragOverIndex !== null) {
+        console.log('🔵 handleDrop - dragOverIndex is not null, will reorder');
 
         // Calculate the actual target position accounting for the removed item
-        let finalTargetIndex = targetIndex;
-        if (workflowIndex < targetIndex) {
-          finalTargetIndex = targetIndex - 1;
+        let finalTargetIndex = dragOverIndex;
+        if (workflowIndex < dragOverIndex) {
+          finalTargetIndex = dragOverIndex - 1;
         }
 
-        // Only reorder if the position actually changed
+        finalTargetIndex = Math.max(0, Math.min(finalTargetIndex, workflowItems.length - 1));
+        console.log('🔵 handleDrop - fromIndex:', workflowIndex, 'finalTargetIndex:', finalTargetIndex);
+
         if (workflowIndex !== finalTargetIndex) {
           const itemName = workflowItems[workflowIndex].name;
+          console.log('🔵 handleDrop - Reordering:', itemName);
           reorderWorkflowItems(workflowIndex, finalTargetIndex);
           addLog('info', `${itemName} moved from position ${workflowIndex + 1} to ${finalTargetIndex + 1}`);
+        } else {
+          console.log('🔵 handleDrop - fromIndex === finalTargetIndex, no reorder needed');
         }
+      } else {
+        console.log('🔵 handleDrop - dragOverIndex is null, cannot reorder');
       }
+
       setDraggingWorkflowIndex(null);
       setDragOverIndex(null);
       setDraggedFunction('');
       return;
     }
 
+    // Handle adding new function from sidebar
+    console.log('🔵 handleDrop - Not a workflow item, checking for new function');
     const functionId = readFunctionId(e.dataTransfer);
+    console.log('🔵 handleDrop - functionId:', functionId);
     const functionData = functions.find(f => f.id === functionId);
 
     if (functionData) {
+      console.log('🔵 handleDrop - Found function, showing input modal');
       setPendingFunction(functionData);
       setPendingInsertIndex(workflowItems.length);
       setShowInputModal(true);
@@ -287,7 +313,7 @@ export default function Home() {
     setDraggingWorkflowIndex(null);
     setDraggedFunction('');
     setDragOverIndex(null);
-  }, [functions, workflowItems.length, addLog, reorderWorkflowItems, readFunctionId, readWorkflowItemIndex, dragOverIndex]);
+  }, [functions, workflowItems, dragOverIndex, readFunctionId, readWorkflowItemIndex, reorderWorkflowItems, addLog]);
 
   const handleItemDragOver = useCallback((e: React.DragEvent, index: number) => {
     e.preventDefault();
@@ -311,10 +337,12 @@ export default function Home() {
       insertIndex = mouseY < itemCenterY ? index : index + 1;
     }
 
+    console.log('🟡 handleItemDragOver - index:', index, 'insertIndex:', insertIndex);
     setDragOverIndex(insertIndex);
   }, []);
 
   const handleItemDragStart = useCallback((e: React.DragEvent, index: number) => {
+    console.log('🟣 handleItemDragStart - index:', index);
     e.dataTransfer.setData('text/workflow-item', index.toString());
     e.dataTransfer.setData('text/plain', `workflow-item:${index}`);
     e.dataTransfer.effectAllowed = 'move';
@@ -322,6 +350,7 @@ export default function Home() {
   }, [setDraggingWorkflowIndex]);
 
   const handleItemDragEnd = useCallback(() => {
+    console.log('🔴 handleItemDragEnd called');
     setDraggingWorkflowIndex(null);
     setDragOverIndex(null);
   }, [setDragOverIndex]);
@@ -329,11 +358,19 @@ export default function Home() {
   const handleItemDrop = useCallback((e: React.DragEvent, index: number) => {
     e.preventDefault();
     e.stopPropagation();
+    console.log('🟢 handleItemDrop called with index:', index);
 
     const fromIndex = readWorkflowItemIndex(e.dataTransfer);
+    console.log('🟢 handleItemDrop - fromIndex:', fromIndex);
+    console.log('🟢 handleItemDrop - dragOverIndex:', dragOverIndex);
+
     if (fromIndex !== null && !Number.isNaN(fromIndex)) {
+      console.log('🟢 handleItemDrop - This is a workflow item drag');
+
       // Use dragOverIndex for strong binding with visual preview
       if (dragOverIndex !== null) {
+        console.log('🟢 handleItemDrop - dragOverIndex is not null, will reorder');
+
         // Calculate the actual target position accounting for the removed item
         let finalTargetIndex = dragOverIndex;
         if (fromIndex < dragOverIndex) {
@@ -341,28 +378,41 @@ export default function Home() {
         }
 
         finalTargetIndex = Math.max(0, Math.min(finalTargetIndex, workflowItems.length - 1));
+        console.log('🟢 handleItemDrop - fromIndex:', fromIndex, 'finalTargetIndex:', finalTargetIndex);
 
         if (fromIndex !== finalTargetIndex) {
           const itemName = workflowItems[fromIndex].name;
+          console.log('🟢 handleItemDrop - Reordering:', itemName);
           reorderWorkflowItems(fromIndex, finalTargetIndex);
           addLog('info', `${itemName} moved from position ${fromIndex + 1} to ${finalTargetIndex + 1}`);
+        } else {
+          console.log('🟢 handleItemDrop - fromIndex === finalTargetIndex, no reorder needed');
         }
+      } else {
+        console.log('🟢 handleItemDrop - dragOverIndex is null, cannot reorder');
       }
 
       setDraggingWorkflowIndex(null);
       setDragOverIndex(null);
+
+      // Mark the event as handled to prevent handleDrop from processing it again
+      (e as any)._workflowHandled = true;
       return;
     }
 
     // Otherwise, check if we're adding a new function
+    console.log('🟢 handleItemDrop - Not a workflow item, checking for new function');
     const functionId = readFunctionId(e.dataTransfer);
+    console.log('🟢 handleItemDrop - functionId:', functionId);
     const functionData = functions.find(f => f.id === functionId);
 
     if (functionData) {
+      console.log('🟢 handleItemDrop - Found function, showing input modal');
       const boundingRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
       const mouseY = e.clientY;
       const itemCenterY = boundingRect.top + boundingRect.height / 2;
       const insertIndex = mouseY < itemCenterY ? index : index + 1;
+      console.log('🟢 handleItemDrop - insertIndex:', insertIndex);
 
       setPendingFunction(functionData);
       setPendingInsertIndex(insertIndex);
@@ -372,7 +422,7 @@ export default function Home() {
     setDraggingWorkflowIndex(null);
     setDraggedFunction('');
     setDragOverIndex(null);
-  }, [functions, reorderWorkflowItems, addLog, readFunctionId, readWorkflowItemIndex, workflowItems.length, dragOverIndex]);
+  }, [functions, reorderWorkflowItems, addLog, readFunctionId, readWorkflowItemIndex, workflowItems, dragOverIndex]);
 
   // Edit workflow item handler
   const handleEditWorkflowItem = useCallback((id: string) => {
@@ -589,8 +639,6 @@ export default function Home() {
           {/* Workflow Canvas */}
           <div
             className="flex-1"
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
           >
             <EnhancedWorkflowCanvas
               workflowItems={workflowItems}
