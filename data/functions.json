@@ -75,17 +75,6 @@
     ]
   },
   {
-    "id": "execjcl",
-    "name": "ExecJCL",
-    "description": "Job Execution",
-    "inputs": [
-      {
-        "name": "JCL Name",
-        "placeholder": "JCL1(SHIPPRATEST.JCL1)"
-      }
-    ]
-  },
-  {
     "id": "submitjcl",
     "name": "Submit JCL",
     "description": "Submit JCL Job from ISPF",

@@ -204,10 +204,7 @@ export class FunctionExecutor {
       
       case 'editjcl':
         return `${functionName}: JCL file '${sanitizedInputs['JCL Name'] || 'JCL1'}' edited successfully. Found '${sanitizedInputs['String to be found1- Find string1'] || 'abc1(&date)'}' and replaced with '${sanitizedInputs['String to be replaced1- replace string1'] || 'xyz1(250806)'}'.`;
-      
-      case 'execjcl':
-        return `${functionName}: JCL job '${sanitizedInputs['JCL Name'] || 'JCL1(SHIPPRATEST.JCL1)'}' submitted successfully. Job execution started.`;
-      
+
       case 'executioncheck':
       case 'getjoblog':
         return await this.executeJobStatusAndOutput(functionName, sanitizedInputs);

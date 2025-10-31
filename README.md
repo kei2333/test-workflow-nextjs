@@ -863,17 +863,16 @@ test-workflow-nextjs/
 1. **logonispf** - Login to ISPF / 登录ISPF
 2. **submitjcl** - Submit JCL job from ISPF / 从ISPF提交JCL作业
 3. **editjcl** - Edit JCL files / 编辑JCL文件
-4. **execjcl** - Execute JCL jobs / 执行JCL作业
-5. **executioncheck** - Check job execution / 检查作业执行
-6. **getjoblog** - Retrieve job logs / 获取作业日志
-7. **filecomp1** - File comparison / 文件比较
-8. **filecomp2** - Conditional file comparison / 条件文件比较
-9. **createfile** - Create files / 创建文件
-10. **sendfile** - Send files to mainframe / 发送文件到大型机
-11. **getfile** - Get files from mainframe / 从大型机获取文件
-12. **fileconv** - File format conversion / 文件格式转换
-13. **gotoispfmainscreen** - Return to ISPF main / 返回ISPF主屏幕
-14. **filereccount** - Get file record count / 获取文件记录数
+4. **executioncheck** - Check job execution / 检查作业执行
+5. **getjoblog** - Retrieve job logs / 获取作业日志
+6. **filecomp1** - File comparison / 文件比较
+7. **filecomp2** - Conditional file comparison / 条件文件比较
+8. **createfile** - Create files / 创建文件
+9. **sendfile** - Send files to mainframe / 发送文件到大型机
+10. **getfile** - Get files from mainframe / 从大型机获取文件
+11. **fileconv** - File format conversion / 文件格式转换
+12. **gotoispfmainscreen** - Return to ISPF main / 返回ISPF主屏幕
+13. **filereccount** - Get file record count / 获取文件记录数
 
 ## 🔧 Configuration / 配置
 
