@@ -524,8 +524,8 @@ http://localhost:3000
 - Debug: Check execution logs panel → backend console → s3270 screen output
 - Reset: Click "Disconnect" button → Clear browser localStorage → Restart servers
 
-**Contact:** [Your contact information]
-
 ---
 
 **Good luck with the project! Feel free to reach out if you have questions as you continue development.**
+
+**Note:** For any questions or clarifications about this handover, please refer to the project repository issues or the original developer.
